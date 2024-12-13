@@ -1,65 +1,37 @@
-# Compiler and flags
-CXX = g++
-CXXFLAGS = -std=c++17
-CXXFLAGS += -fdiagnostics-color=always
-CXXFLAGS += -Wall
-CXXFLAGS += -Werror
-CXXFLAGS += -Wextra
-CXXFLAGS += -Wcast-align
-CXXFLAGS += -Wconversion
-CXXFLAGS += -Wfloat-equal
-CXXFLAGS += -Wformat=2
-CXXFLAGS += -Wnull-dereference
-CXXFLAGS += -Wshadow
-CXXFLAGS += -Wsign-conversion
-CXXFLAGS += -Wswitch-default
-CXXFLAGS += -Wswitch-enum
-CXXFLAGS += -Wundef
-CXXFLAGS += -Wunreachable-code
-CXXFLAGS += -Wunused
+all: gethostname getaddrinfo udp_sendto udp_recvfrom getnameinfo tcp_conn tcp_sigpipe udp_sv tcp_sv tcp_busy tcp_conc
 
-# Files
-SRC := src
+gethostname: gethostname.c
+	gcc gethostname.c -o gethostname
 
-CLIENT_SOURCES := $(wildcard $(SRC)/client/*.cpp)
-CLIENT_HEADERS := $(wildcard $(SRC)/client/*.hpp)
-CLIENT_OBJECTS := $(CLIENT_SOURCES:.cpp=.o)
-CLIENT_EXEC := client
+getaddrinfo: getaddrinfo.c
+	gcc getaddrinfo.c -o getaddrinfo
 
-SERVER_SOURCES := $(wildcard $(SRC)/server/*.cpp)
-SERVER_HEADERS := $(wildcard $(SRC)/server/*.hpp)
-SERVER_OBJECTS := $(SERVER_SOURCES:.cpp=.o)
-SERVER_EXEC := GS
+udp_sendto: udp_sendto.c
+	gcc udp_sendto.c -o udp_sendto
 
-COMMON_SOURCES := $(wildcard $(SRC)/common/*.cpp)
-COMMON_HEADERS := $(wildcard $(SRC)/common/*.hpp)
-COMMON_OBJECTS := $(COMMON_SOURCES:.cpp=.o)
+udp_recvfrom: udp_recvfrom.c
+	gcc udp_recvfrom.c -o udp_recvfrom
 
-SOURCES := $(CLIENT_SOURCES) $(SERVER_SOURCES) $(COMMON_SOURCES)
-HEADERS := $(CLIENT_HEADERS) $(SERVER_HEADERS) $(COMMON_HEADERS)
-OBJECTS := $(CLIENT_OBJECTS) $(SERVER_OBJECTS) $(COMMON_OBJECTS)
-EXECS := $(CLIENT_EXEC) $(SERVER_EXEC)
+getnameinfo: getnameinfo.c
+	gcc getnameinfo.c -o getnameinfo
 
-# Commands
-.PHONY: all clean fmt fmt-check
+tcp_conn: tcp_conn.c
+	gcc tcp_conn.c -o tcp_conn
 
-all: $(EXECS)
+tcp_sigpipe: tcp_sigpipe.c
+	gcc tcp_sigpipe.c -o tcp_sigpipe
 
-$(CLIENT_EXEC): $(CLIENT_OBJECTS) $(COMMON_OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+udp_sv: udp_sv.c
+	gcc udp_sv.c -o udp_sv
 
-$(SERVER_EXEC): $(SERVER_OBJECTS) $(COMMON_OBJECTS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+tcp_sv: tcp_sv.c
+	gcc tcp_sv.c -o tcp_sv
+
+tcp_busy: tcp_busy.c
+	gcc tcp_busy.c -o tcp_busy
+
+tcp_conc: tcp_conc.c
+	gcc tcp_conc.c -o tcp_conc
 
 clean:
-	rm -f $(OBJECTS) $(EXECS) proj_50.zip
-
-fmt: $(SOURCES) $(HEADERS)
-	clang-format -i $^
-
-submission:
-	mkdir proj_50
-	cp README.md proj_50/readme.txt
-	cp -r src Makefile proj_50/
-	zip -r proj_50.zip proj_50
-	rm -r proj_50
+	rm -f gethostname getaddrinfo udp_sendto udp_recvfrom getnameinfo tcp_conn tcp_sigpipe udp_sv tcp_sv tcp_busy tcp_conc
