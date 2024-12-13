@@ -36,7 +36,8 @@ Command getCmd(std::string line) {
 
 void parseCmd(std::string line, Input *input, Command cmd) {
 	std::string first = line.substr(0, line.find(' '));
-	std::string s = line.size() > first.size() ? line.substr(line.find(' ')) : first;
+	std::string s =
+			line.size() > first.size() ? line.substr(line.find(' ')) : first;
 	switch (cmd) {
 		case CMD_START:
 			if (!parseStart(s, input)) std::cout << "Error parsing start command.\n";
@@ -74,9 +75,9 @@ bool parseStart(std::string s, Input *input) {
 	return false;
 }
 
-bool parseTry(std::string s, Input *input) {
+bool parseTry(std::string s /*, Input *input*/) {
 	if (!parseSpace(s)) return false;
-	if (!parseCode(s, input)) return false;
+	// if (!parseCode(s, input)) return false;
 	if (!s.size()) return true;
 	return false;
 }
@@ -118,13 +119,12 @@ bool parseTime(std::string &s, Input *input) {
 	return true;
 }
 
-bool parseCode(std::string &s, Input *input) {
-	if (s.size() < CODE_LEN) return false;
-	char *ptr = s.data(), c;
-	for (int i=0; Colors.size() ;i++) {
-		if ()
-	}
-}
+// bool parseCode(std::string &s, Input *input) {
+// 	if (s.size() < CODE_LEN) return false;
+// 	char *ptr = s.data(), c;
+// 	for (int i = 0; Colors.size(); i++) {
+// 		if () }
+// }
 
 bool parseSpace(std::string &s) {
 	if (s.size() > 0 and s.front() != ' ') return false;
