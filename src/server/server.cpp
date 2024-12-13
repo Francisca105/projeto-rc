@@ -135,11 +135,11 @@ int socketInnit(std::string port_number, bool protocol) {
 int readUdp(int fd, char *buf, char *host, char *port) {
 	struct sockaddr addr;
 	socklen_t addrlen = sizeof(addr);
-	int n = recvfrom(fd, buf, UDP_SIZE, 0, &addr, &addrlen);
+	ssize_t n = recvfrom(fd, buf, UDP_SIZE, 0, &addr, &addrlen);
 	if (n == -1) errorErrno("recvfrom");
 	if (getnameinfo(&addr, addrlen, host, NI_MAXHOST, port, NI_MAXSERV, 0) != 0)
 		errorErrno("getnameinfo");
-	return n;
+	return (int) n;
 }
 
 void parseAndRun(Command cmd, std::string buf, int len, Client client,
@@ -186,6 +186,8 @@ void parseAndRun(Command cmd, std::string buf, int len, Client client,
 				// reply(status)
 			}
 			break;
+		case CMD_STR:
+		case CMD_SSB:
 		case CMD_ERR:
 			break;
 		default:

@@ -6,41 +6,66 @@
 #include <iostream>
 
 #include "client_game.hpp"
+#include "client_parser.hpp"
 #include "client_state.hpp"
 
 volatile sig_atomic_t keep_running = true;
 
-void sigintHandler(int signum);
-
-// use exceptions ?
-// continue program if error is not fatal ?
 int main(int argc, char **argv) {
-	struct sigaction act;
-	memset(&act, 0, sizeof(act));
-	act.sa_handler = sigintHandler;
-	if (sigaction(SIGINT, &act, NULL) == -1)
-		std::cerr << "Failed changing how SIGINT is handled.\n";
+	setSignal(SIGINT, sigintHandler);
 
-	ClientState client_state(argc, argv);
+	ClientState state;
+	initClientState(&state, argc, argv);
+	ClientArgs args;
 
 	std::string line;
-	Input input;
+	std::cout << "Insert command below:\n";
 	while (keep_running) {
+		std::cout << "> ";
 		std::getline(std::cin, line);
-		if (std::cin.fail() or std::cin.eof()) break; // necessary ?
-		Command cmd = getCmd(line);
-		if (cmd != CMD_ERR)
-			parseCmd(line, &input, cmd);
-		else
-			std::cout << "Command type not identified.\n";
+		if (std::cin.fail() or std::cin.bad() or std::cin.eof()) break;
+		if (isOnlyWhiteSpace(line)) continue;
+		handleCmd(line, &args, &state);
+		std::cout << "Insert command below:\n";
 	}
 
-	// sends QUT to the server and closes client
-	std::cout << "\nClosing client...\n";
+	// send QUT to the GS
+	std::cout << "\nClosing the player application ...\n";
 
 	return 0;
 }
 
-void sigintHandler(int signum) {
-	if (signum == SIGINT) keep_running = false;
+void sigintHandler(int signal) {
+	if (signal == SIGINT) keep_running = false;
+}
+
+void setSignal(int signal, void (*func)(int)) {
+	struct sigaction act;
+	std::memset(&act, 0, sizeof(act));
+	act.sa_handler = func;
+	if (sigaction(signal, &act, NULL) == -1) {
+		std::cerr << "Could not change how SIGINT is handled.\n";
+		std::perror("Error - sigaction");
+	}
+}
+
+bool isOnlyWhiteSpace(std::string s) {
+	std::size_t len = s.size();
+	for (uint i = 0; i < len; i++)
+		if (!std::isspace(s.at(i))) return false;
+	return true;
+}
+
+void handleCmd(std::string &s, ClientArgs *args, ClientState *state) {
+	Command cmd = getCmd(s);
+	if (cmd == CMD_ERR) {
+		std::cerr << "Unknown command.\n";
+		return;
+	}
+	if (!parseCmd(s, args, cmd)) {
+		std::cerr << "Error parsing " << s << "\n";
+		return;
+	}
+	state->fd = 0;
+	runCmd(cmd, *args, state);
 }

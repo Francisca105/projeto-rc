@@ -99,7 +99,7 @@ bool parsePlid(std::string &s, int *n, std::string &plid) {
 	if (*n < PLID_LEN)
 		return false;
 	int count = 0;
-	for (int i = 0; i < *n; i++, count++)
+	for (size_t i = 0; i < (size_t) *n; i++, count++)
 		if (std::isdigit(s.at(i)) == 0)
 			break;
 	if (count != PLID_LEN)
@@ -114,7 +114,7 @@ bool parseTime(std::string &s, int *n, int *time) {
 	if (*n < TIME_LEN)
 		return false;
 	int count = 0;
-	for (int i = 0; i < *n; i++, count++)
+	for (size_t i = 0; i < (size_t) *n; i++, count++)
 		if (std::isdigit(s.at(i)) == 0)
 			break;
 	if (count != TIME_LEN)
@@ -137,7 +137,7 @@ bool parseCode(std::string &s, int *n, std::string &code) {
 	if (*n < CODE_LEN)
 		return false;
 	bool color = true;
-	for (int i = 0; i < CODE_LEN; i++) {
+	for (size_t i = 0; i < (size_t) CODE_LEN; i++) {
 		if (color == true) {
 			if (parseColor(s, n) == false)
 				return false;
@@ -179,7 +179,7 @@ bool parseNt(std::string &s, int *n, int *nt) {
 	if (*n < 1)
 		return false;
 	int count = 0;
-	for (int i = 0; i < *n; i++, count++)
+	for (size_t i = 0; i < (size_t) *n; i++, count++)
 		if (std::isdigit(s.at(i)) == 0)
 			break;
 	if (count != 1)

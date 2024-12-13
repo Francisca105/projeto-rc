@@ -1,23 +1,22 @@
 #ifndef CLIENT_STATE_H
 #define CLIENT_STATE_H
-#include <iostream>
 
-#include "../common/common.hpp"
+#include <netdb.h>
 
-class ClientState {
-	std::string gs_ip = GSIP;
-	std::string gs_port = GSPORT;
-	std::string plid = "";
-	bool keep_running = true;
+#include <string>
 
- public:
-	ClientState(int argc, char **argv);
-	void setIp(std::string ip);
-	void setPort(std::string port);
-	void setPlid(std::string plid);
-	std::string getPlid();
-};
+#include "../common/constants.hpp"
 
-void initState(int argc, char **argv, ClientState &state);
+typedef struct {
+	std::string ip = GSIP;
+	std::string port = GSPORT;
+	int fd;
+	struct addrinfo *addr;
+	std::string plid;
+} ClientState;
+
+int initClientState(ClientState *state, int argc, char **argv);
+void setIp(const char *buf, std::string &ip);
+void setPort(const char *buf, std::string &port);
 
 #endif

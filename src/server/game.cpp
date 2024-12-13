@@ -63,7 +63,7 @@ ColorCount countColors(std::vector<Color> colors) {
 
 std::vector<Color> generateRandomColors() {
 	std::vector<Color> colors;
-	std::srand(std::time(nullptr));	 // Seed for random number generation
+	std::srand((uint) std::time(nullptr));	 // Seed for random number generation
 
 	for (int i = 0; i < NUM_COLORS; ++i) {
 		int randomIndex = std::rand() % 6;	// There are 6 colors
@@ -100,7 +100,7 @@ TrialResult checkGuess(std::vector<Color> secret, std::vector<Color> guess) {
 	ColorCount secretCount = countColors(secret);
 	ColorCount guessCount = countColors(guess);
 
-	for (int i = 0; i < NUM_COLORS; ++i) {
+	for (size_t i = 0; i < NUM_COLORS; ++i) {
 		if (secret[i] == guess[i]) {
 			result.correctColorAndPosition++;
 			switch (secret[i]) {

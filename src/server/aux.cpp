@@ -38,6 +38,10 @@ std::string getCmdName(Command cmd) {
 			return std::string("QUT");
 		case CMD_DBG:
 			return std::string("DBG");
+		case CMD_STR:
+			return std::string("STR");
+		case CMD_SSB:
+			return std::string("SSB");
 		default:
 			return std::string("ERR");
 	}

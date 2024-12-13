@@ -2,15 +2,14 @@
 #define CLIENT_GAME_H
 
 #include <string>
-#include <set>
 
-struct Input {
-	std::string plid = "";
-	char code[4];
-	int time = 0;
-};
+#include "client_state.hpp"
 
-const std::set<char> Colors = {'R', 'G', 'B', 'Y', 'O', 'P'};
+typedef struct {
+	std::string plid;
+	int time;
+	std::string code;
+} ClientArgs;
 
 enum Command {
 	CMD_START,
@@ -18,18 +17,18 @@ enum Command {
 	CMD_QUIT,
 	CMD_EXIT,
 	CMD_DEBUG,
-	CMD_ST,
-	CMD_SB,
+	CMD_SHOWTRIALS,
+	CMD_SCOREBOARD,
 	CMD_ERR
 };
 
-Command getCmd(std::string line);
-void parseCmd(std::string line, Input *input, Command cmd);
-bool parseStart(std::string s, Input *input);
-
-bool parsePlid(std::string &s, Input *input);
-bool parseTime(std::string &s, Input *input);
-bool parseCode(std::string &s, Input *input);
-bool parseSpace(std::string &s);
+void runCmd(Command cmd, ClientArgs args, ClientState *state);
+void runStart(ClientArgs args, ClientState *state);
+void runTry(ClientArgs args, ClientState *state);
+void runQuit(ClientArgs args, ClientState *state);
+void runExit(ClientArgs args, ClientState *state);
+void runDebug(ClientArgs args, ClientState *state);
+void runShowTrials(ClientArgs args, ClientState *state);
+void runScoreboard(ClientArgs args, ClientState *state);
 
 #endif

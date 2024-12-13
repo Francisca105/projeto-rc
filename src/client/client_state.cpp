@@ -1,19 +1,25 @@
 #include "client_state.hpp"
 
 #include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <unistd.h>
 
-ClientState::ClientState(int argc, char **argv) {
-	int opt, nopt = 0;
+#include <cstring>
+#include <iostream>
 
+#include "../common/transport.hpp"
+
+int initClientState(ClientState *state, int argc, char **argv) {
+	int opt, nopt = 0;
 	while ((opt = getopt(argc, argv, "n:p:")) != -1) {
 		switch (opt) {
 			case 'n':
-				this->setIp(optarg);
+				setIp(optarg, state->ip);
 				nopt++;
 				break;
 			case 'p':
-				this->setPort(optarg);
+				setPort(optarg, state->port);
 				nopt++;
 				break;
 			default:
@@ -22,53 +28,37 @@ ClientState::ClientState(int argc, char **argv) {
 		}
 	}
 
-	if (argc != nopt * 2 + 1) {
+	if (argc != 2 * nopt + 1) {
 		std::cerr << "Usage: " << argv[0] << " [-n GSIP] [-p GSport]\n";
 		exit(1);
 	}
+
+	state->fd = setUdpSocket(state->ip, state->port, &state->addr, false);
+
+	return 0;
 }
 
-// verify if IP is valid? if yes, use inet_pton
-// use localhost if IP given as parameter is invalid?
-void ClientState::setIp(std::string ip) {
-	this->gs_ip = ip;
-}
-
-// verify if port is valid ? if yes, what conditions: valid number, > 1023, <
-// 65536 ? use port 0 (allocated by the OS) if port is invalid ?
-void ClientState::setPort(std::string port) {
-	gs_port = port;
-}
-
-void ClientState::setPlid(std::string id) {
-	plid = id;
-}
-
-std::string ClientState::getPlid() {
-	return plid;
-}
-
-void initState(int argc, char **argv, ClientState &state) {
-	int opt, nopt = 0;
-
-	while ((opt = getopt(argc, argv, "n:p:")) != -1) {
-		switch (opt) {
-			case 'n':
-				state.setIp(optarg);
-				nopt++;
-				break;
-			case 'p':
-				state.setPort(optarg);
-				nopt++;
-				break;
-			default:
-				std::cerr << "Usage: " << argv[0] << " [-n GSIP] [-p GSport]\n";
-				exit(1);
-		}
-	}
-
-	if (argc != nopt * 2 + 1) {
-		std::cerr << "Usage: " << argv[0] << " [-n GSIP] [-p GSport]\n";
+void setIp(const char *buf, std::string &ip) {
+	char tmp[sizeof(struct in_addr)];
+	if (!inet_pton(AF_INET, buf, tmp)) {
+		std::cerr << "GSIP not a valid IP address.\n"
+							<< "Error - inet_pton\n";
 		exit(1);
 	}
+	ip = buf;
+}
+
+void setPort(const char *buf, std::string &port) {
+	char *end_ptr{};
+	errno = 0;
+	long port_number = std::strtol(buf, &end_ptr, 10);
+	if (port_number == 0) {
+		std::cerr << "GSport not a valid number.\n";
+		exit(1);
+	} else if (errno == ERANGE or port_number < 0 or
+						 port_number > (1 << 16) - 1) {
+		std::cerr << "GSport not a valid port number.\n";
+		exit(1);
+	}
+	port = buf;
 }
