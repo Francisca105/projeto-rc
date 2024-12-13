@@ -1,6 +1,6 @@
 # Executables
-GS
-client
+/GS
+/client
 
 # Object files
 *.o
