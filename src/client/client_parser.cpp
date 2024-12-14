@@ -204,6 +204,60 @@ bool parseStatus(std::string &buf, Status *status) {
 	return false;
 }
 
-// bool parseRTR(std::string buf, ServerArgs *args) {
-// 	return false;
-// }
+bool parseRTR(std::string buf, ServerArgs *args) {
+	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RTR"))
+		return false;
+	buf.erase(0, CMD_LEN);
+	if (!parseSpace(buf)) return false;
+	if (!parseStatus(buf, &args->status)) return false;
+	switch (args->status) {
+		case OK:
+			if (!parseSpace(buf)) return false;
+			if (!parseXXX(buf, &args->nT, &args->nB, &args->nW)) return false;
+			args->nT += 1;
+			break;
+		case DUP:
+			if (!parseSpace(buf)) return false;
+			if (!parseXXX(buf, &args->nT, &args->nB, &args->nW)) return false;
+			break;
+		case ENT:
+			if (!parseSpace(buf)) return false;
+			if (!parseCode(buf, args->code)) return false;
+			break;
+		case ETM:
+			if (!parseSpace(buf)) return false;
+			if (!parseCode(buf, args->code)) return false;
+			break;
+		case INV:
+			break;
+		case NOK:
+			break;
+		case ERR:
+		default:
+			break;
+	}
+	if (!parseNewline(buf)) return false;
+	if (buf.size() != 0) return false;
+	return true;
+}
+
+bool parseXXX(std::string &buf, int *nT, int *nB, int *nW) {
+	if (buf.size() < sizeof("T B W")) return false;
+	long nT_l = std::atol(buf.substr(0, 1).c_str());
+	if (nT_l <= 0 or nT_l > 7) return false;
+	buf.erase(0, 1);
+	if (!parseSpace(buf)) return false;
+	long nB_l = std::atol(buf.substr(0, 1).c_str());
+	if (nB_l == 0 and !std::isdigit(buf.substr(0, 1).c_str()[0])) return false;
+	if (nB_l < 0 or nB_l > 3) return false;
+	buf.erase(0, 1);
+	if (!parseSpace(buf)) return false;
+	long nW_l = std::atol(buf.substr(0, 1).c_str());
+	if (nW_l == 0 and !std::isdigit(buf.substr(0, 1).c_str()[0])) return false;
+	if (nW_l < 0 or nW_l > 4) return false;
+	buf.erase(0, 1);
+	*nT = (int)nT_l;
+	*nB = (int)nB_l;
+	*nW = (int)nW_l;
+	return true;
+}
