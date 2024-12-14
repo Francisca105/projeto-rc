@@ -9,7 +9,7 @@
 #include "client_parser.hpp"
 #include "client_state.hpp"
 
-volatile sig_atomic_t keep_running = true;
+// extern sig_atomic_t keep_running;
 
 int main(int argc, char **argv) {
 	setSignal(SIGINT, sigintHandler);
@@ -20,18 +20,17 @@ int main(int argc, char **argv) {
 	ServerArgs server_args;
 
 	std::string line;
-	std::cout << "Insert command below:\n";
-	while (keep_running) {
+	do {
+		std::cout << "Insert command below:\n";
 		std::cout << "> ";
 		std::getline(std::cin, line);
 		if (std::cin.fail() or std::cin.bad() or std::cin.eof()) break;
 		if (isOnlyWhiteSpace(line)) continue;
 		handleCmd(line, &client_args, &server_args, &state);
-		std::cout << "Insert command below:\n";
-	}
+	} while (keep_running);
 
 	// send QUT to the GS
-	std::cout << "\nClosing the player application ...";
+	std::cout << "\nClosing the player application ...\n";
 
 	return 0;
 }

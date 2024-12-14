@@ -1,9 +1,13 @@
 #ifndef CLIENT_GAME_H
 #define CLIENT_GAME_H
 
+#include <signal.h>
+
 #include <string>
 
 #include "client_state.hpp"
+
+extern volatile sig_atomic_t keep_running;
 
 typedef struct {
 	std::string plid;
@@ -39,7 +43,7 @@ void runStart(ClientArgs client_args, ServerArgs *server_args,
 							ClientState *state);
 void runTry(ClientArgs client_args, ServerArgs *server_args,
 						ClientState *state);
-void runQuit(ClientArgs client_args, ClientState *state);
+void runQuit(ServerArgs *server_args, ClientState *state);
 void runExit(ClientArgs client_args, ClientState *state);
 void runDebug(ClientArgs client_args, ClientState *state);
 void runShowTrials(ClientArgs client_args, ClientState *state);

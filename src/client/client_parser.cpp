@@ -261,3 +261,29 @@ bool parseXXX(std::string &buf, int *nT, int *nB, int *nW) {
 	*nW = (int)nW_l;
 	return true;
 }
+
+bool parseQUT(std::string buf, ServerArgs *args) {
+	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RQT"))
+		return false;
+	buf.erase(0, CMD_LEN);
+	if (!parseSpace(buf)) return false;
+	if (!parseStatus(buf, &args->status)) return false;
+	switch (args->status) {
+		case OK:
+			if (!parseSpace(buf)) return false;
+			if (!parseCode(buf, args->code)) return false;
+			break;
+		case NOK:
+		case ERR:
+			break;
+		case DUP:
+		case INV:
+		case ENT:
+		case ETM:
+		default:
+			return false;
+	}
+	if (!parseNewline(buf)) return false;
+	if (buf.size() != 0) return false;
+	return true;
+}

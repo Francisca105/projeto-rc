@@ -1,9 +1,13 @@
 #include "client_game.hpp"
 
+#include <signal.h>
+
 #include <iostream>
 
 #include "../common/transport.hpp"
 #include "client_parser.hpp"
+
+volatile sig_atomic_t keep_running = true;
 
 void runCmd(Command cmd, ClientArgs client_args, ServerArgs *server_args,
 						ClientState *state) {
@@ -16,10 +20,12 @@ void runCmd(Command cmd, ClientArgs client_args, ServerArgs *server_args,
 			runTry(client_args, server_args, state);
 			break;
 		case CMD_QUIT:
-			// runQuit(args, state);
+			runQuit(server_args, state);
 			break;
 		case CMD_EXIT:
-			// runExit(args, state);
+			runQuit(server_args, state);
+			if (server_args->status == OK or server_args->status == NOK)
+				keep_running = false;
 			break;
 		case CMD_DEBUG:
 			// runDebug(args, state);
@@ -84,9 +90,26 @@ void runTry(ClientArgs client_args, ServerArgs *server_args,
 	std::cout << reply;
 }
 
-// void runQuit(ClientArgs args, ClientState *state) {
-
-// }
+void runQuit(ServerArgs *server_args, ClientState *state) {
+	if (!state->plid.size()) {
+		std::cerr << "There is no player active in the application.\n";
+		return;
+	}
+	std::string packet(QUT_LEN, ' ');
+	sprintf(packet.data(), "QUT %s\n", state->plid.c_str());
+	std::string reply(MAX_UDP_REPLY, ' ');
+	if (!sendUdpAndWait(state->fd, packet, reply, *state->addr, nullptr)) {
+		std::cerr << "Game Server did not replied to the request.\n";
+		return;
+	}
+	if (!parseQUT(reply, server_args)) {
+		std::cerr << "Something wrong happened with the server.\n"
+							<< "Closing the application ...";
+		exit(1);
+	}
+	if (server_args->status == OK or server_args->status == NOK) state->plid = "";
+	std::cout << reply;
+}
 
 // void runExit(ClientArgs args, ClientState *state) {
 
