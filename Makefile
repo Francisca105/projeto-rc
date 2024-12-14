@@ -63,3 +63,6 @@ submission:
 	cp -r src Makefile proj_50/
 	zip -r proj_50.zip proj_50
 	rm -r proj_50
+
+run:
+	./client

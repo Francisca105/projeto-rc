@@ -22,13 +22,26 @@ enum Command {
 	CMD_ERR
 };
 
-void runCmd(Command cmd, ClientArgs args, ClientState *state);
-void runStart(ClientArgs args, ClientState *state);
-void runTry(ClientArgs args, ClientState *state);
-void runQuit(ClientArgs args, ClientState *state);
-void runExit(ClientArgs args, ClientState *state);
-void runDebug(ClientArgs args, ClientState *state);
-void runShowTrials(ClientArgs args, ClientState *state);
-void runScoreboard(ClientArgs args, ClientState *state);
+typedef struct {
+	Status status;
+	int nT;
+	int nB;
+	int nW;
+	std::string code;
+	std::string fname;
+	int fsize;
+	std::string fdata;
+} ServerArgs;
+
+void runCmd(Command cmd, ClientArgs client_args, ServerArgs *server_args,
+						ClientState *state);
+void runStart(ClientArgs client_args, ServerArgs *server_args,
+							ClientState *state);
+void runTry(ClientArgs client_args, ClientState *state);
+void runQuit(ClientArgs client_args, ClientState *state);
+void runExit(ClientArgs client_args, ClientState *state);
+void runDebug(ClientArgs client_args, ClientState *state);
+void runShowTrials(ClientArgs client_args, ClientState *state);
+void runScoreboard(ClientArgs client_args, ClientState *state);
 
 #endif

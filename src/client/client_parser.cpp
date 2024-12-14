@@ -68,16 +68,16 @@ bool parseStart(std::string buf, ClientArgs *args) {
 	if (!parseSpace(buf)) return false;
 	if (!parseTime(buf, &args->time)) return false;
 	rtrim(buf);
-	if (!buf.size()) return true;
-	return false;
+	if (buf.size() != 0) return false;
+	return true;
 }
 
 bool parseTry(std::string buf, ClientArgs *args) {
 	if (!parseSpace(buf)) return false;
 	if (!parseCode(buf, args->code)) return false;
 	rtrim(buf);
-	if (!buf.size()) return true;
-	return false;
+	if (buf.size() != 0) return false;
+	return true;
 }
 
 bool parseDebug(std::string buf, ClientArgs *args) {
@@ -88,8 +88,8 @@ bool parseDebug(std::string buf, ClientArgs *args) {
 	if (!parseSpace(buf)) return false;
 	if (!parseCode(buf, args->code)) return false;
 	rtrim(buf);
-	if (!buf.size()) return true;
-	return false;
+	if (buf.size() != 0) return false;
+	return true;
 }
 
 bool parsePlid(std::string &buf, std::string &plid) {
@@ -160,15 +160,50 @@ bool parseCode(std::string &buf, std::string &code) {
 	return true;
 }
 
-bool parseSpace(std::string &s) {
-	if (!s.size() or s.front() != ' ') return false;
-	s.erase(0, 1);
+bool parseSpace(std::string &buf) {
+	if (!buf.size() or buf.front() != ' ') return false;
+	buf.erase(0, 1);
+	return true;
+}
+
+bool parseNewline(std::string &buf) {
+	if (!buf.size() or buf.front() != '\n') return false;
+	buf.erase(0, 1);
 	return true;
 }
 
 void rtrim(std::string &buf) {
 	buf.erase(std::find_if(buf.rbegin(), buf.rend(),
-											 [](unsigned char ch) { return !std::isspace(ch); })
-							.base(),
-					buf.end());
+												 [](unsigned char ch) { return !std::isspace(ch); })
+								.base(),
+						buf.end());
 }
+
+bool parseRSG(std::string buf, ServerArgs *args) {
+	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RSG"))
+		return false;
+	buf.erase(0, CMD_LEN);
+	if (!parseSpace(buf)) return false;
+	if (!parseStatus(buf, &args->status)) return false;
+	if (!parseNewline(buf)) return false;
+	if (buf.size() != 0) return false;
+	return true;
+}
+
+bool parseStatus(std::string &buf, Status *status) {
+	char *ptr = buf.data();
+	size_t i;
+	for (i = 0; i < buf.size(); i++, ptr++) {
+		if (!isupper(*ptr)) break;
+	}
+	if (auto it = Temp.find(buf.substr(0, i)); it != Temp.end()) {
+		*status = it->second;
+		buf.erase(0, i);
+		return true;
+	}
+	return false;
+}
+
+// bool parseRTR(std::string buf, ServerArgs *args) {
+// 	return false;
+// }

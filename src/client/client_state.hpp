@@ -13,6 +13,7 @@ typedef struct {
 	int fd;
 	struct addrinfo *addr;
 	std::string plid;
+	int nT;
 } ClientState;
 
 int initClientState(ClientState *state, int argc, char **argv);

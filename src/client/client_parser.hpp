@@ -13,6 +13,11 @@ bool parsePlid(std::string &buf, std::string &plid);
 bool parseTime(std::string &buf, int *time);
 bool parseCode(std::string &buf, std::string &code);
 bool parseSpace(std::string &buf);
+bool parseNewline(std::string &buf);
 void rtrim(std::string &buf);
+
+bool parseRSG(std::string buf, ServerArgs *args);
+bool parseStatus(std::string &buf, Status *status);
+bool parseRTR(std::string buf, ServerArgs *args);
 
 #endif
