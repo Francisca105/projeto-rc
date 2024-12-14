@@ -28,7 +28,7 @@ void runCmd(Command cmd, ClientArgs client_args, ServerArgs *server_args,
 				keep_running = false;
 			break;
 		case CMD_DEBUG:
-			// runDebug(args, state);
+			runDebug(client_args, server_args, state);
 			break;
 		case CMD_SHOWTRIALS:
 			// runShowTrials(args, state);
@@ -111,13 +111,31 @@ void runQuit(ServerArgs *server_args, ClientState *state) {
 	std::cout << reply;
 }
 
-// void runExit(ClientArgs args, ClientState *state) {
-
-// }
-
-// void runDebug(ClientArgs args, ClientState *state) {
-
-// }
+void runDebug(ClientArgs client_args, ServerArgs *server_args,
+							ClientState *state) {
+	if (state->plid.size() > 0 and client_args.plid.compare(state->plid) != 0) {
+		std::cerr << "There is a player already active.\n";
+		return;
+	}
+	std::string packet(DBG_LEN, ' ');
+	sprintf(packet.data(), "DBG %s %.3d %s\n", client_args.plid.c_str(),
+					client_args.time, client_args.code.c_str());
+	std::string reply(MAX_UDP_REPLY, ' ');
+	if (!sendUdpAndWait(state->fd, packet, reply, *state->addr, nullptr)) {
+		std::cerr << "Game Server did not replied to the request.\n";
+		return;
+	}
+	if (!parseDBG(reply, server_args)) {
+		std::cerr << "Something wrong happened with the server.\n"
+							<< "Closing the application ...";
+		exit(1);
+	}
+	if (server_args->status == OK) {
+		state->plid = client_args.plid;
+		state->nT = 1;
+	}
+	std::cout << reply;
+}
 
 // void runShowTrials(ClientArgs args, ClientState *state) {
 

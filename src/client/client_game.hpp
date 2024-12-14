@@ -45,7 +45,8 @@ void runTry(ClientArgs client_args, ServerArgs *server_args,
 						ClientState *state);
 void runQuit(ServerArgs *server_args, ClientState *state);
 void runExit(ClientArgs client_args, ClientState *state);
-void runDebug(ClientArgs client_args, ClientState *state);
+void runDebug(ClientArgs client_args, ServerArgs *server_args,
+							ClientState *state);
 void runShowTrials(ClientArgs client_args, ClientState *state);
 void runScoreboard(ClientArgs client_args, ClientState *state);
 

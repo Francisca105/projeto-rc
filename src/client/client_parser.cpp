@@ -287,3 +287,14 @@ bool parseQUT(std::string buf, ServerArgs *args) {
 	if (buf.size() != 0) return false;
 	return true;
 }
+
+bool parseDBG(std::string buf, ServerArgs *args) {
+	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RDB"))
+		return false;
+	buf.erase(0, CMD_LEN);
+	if (!parseSpace(buf)) return false;
+	if (!parseStatus(buf, &args->status)) return false;
+	if (!parseNewline(buf)) return false;
+	if (buf.size() != 0) return false;
+	return true;
+}

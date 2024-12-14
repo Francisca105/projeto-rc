@@ -21,4 +21,5 @@ bool parseStatus(std::string &buf, Status *status);
 bool parseRTR(std::string buf, ServerArgs *args);
 bool parseXXX(std::string &buf, int *nT, int *nB, int *nW);
 bool parseQUT(std::string buf, ServerArgs *args);
+bool parseDBG(std::string buf, ServerArgs *args);
 #endif
