@@ -16,7 +16,8 @@ int main(int argc, char **argv) {
 
 	ClientState state;
 	initClientState(&state, argc, argv);
-	ClientArgs args;
+	ClientArgs client_args;
+	ServerArgs server_args;
 
 	std::string line;
 	std::cout << "Insert command below:\n";
@@ -25,12 +26,12 @@ int main(int argc, char **argv) {
 		std::getline(std::cin, line);
 		if (std::cin.fail() or std::cin.bad() or std::cin.eof()) break;
 		if (isOnlyWhiteSpace(line)) continue;
-		handleCmd(line, &args, &state);
+		handleCmd(line, &client_args, &server_args, &state);
 		std::cout << "Insert command below:\n";
 	}
 
 	// send QUT to the GS
-	std::cout << "\nClosing the player application ...\n";
+	std::cout << "\nClosing the player application ...";
 
 	return 0;
 }
@@ -56,16 +57,16 @@ bool isOnlyWhiteSpace(std::string s) {
 	return true;
 }
 
-void handleCmd(std::string &s, ClientArgs *args, ClientState *state) {
+void handleCmd(std::string &s, ClientArgs *client_args, ServerArgs *server_args,
+							 ClientState *state) {
 	Command cmd = getCmd(s);
 	if (cmd == CMD_ERR) {
 		std::cerr << "Unknown command.\n";
 		return;
 	}
-	if (!parseCmd(s, args, cmd)) {
+	if (!parseCmd(s, client_args, cmd)) {
 		std::cerr << "Error parsing " << s << "\n";
 		return;
 	}
-	state->fd = 0;
-	runCmd(cmd, *args, state);
+	runCmd(cmd, *client_args, server_args, state);
 }

@@ -9,6 +9,7 @@
 void sigintHandler(int signal);
 void setSignal(int signal, void (*func)(int));
 bool isOnlyWhiteSpace(std::string s);
-void handleCmd(std::string &s, ClientArgs *args, ClientState *state);
+void handleCmd(std::string &s, ClientArgs *client_args, ServerArgs *server_args,
+							 ClientState *state);
 
 #endif
