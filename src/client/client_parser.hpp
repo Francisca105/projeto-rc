@@ -19,5 +19,6 @@ void rtrim(std::string &buf);
 bool parseRSG(std::string buf, ServerArgs *args);
 bool parseStatus(std::string &buf, Status *status);
 bool parseRTR(std::string buf, ServerArgs *args);
+bool parseXXX(std::string &buf, int *nT, int *nB, int *nW);
 
 #endif

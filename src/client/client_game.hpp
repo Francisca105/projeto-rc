@@ -37,7 +37,8 @@ void runCmd(Command cmd, ClientArgs client_args, ServerArgs *server_args,
 						ClientState *state);
 void runStart(ClientArgs client_args, ServerArgs *server_args,
 							ClientState *state);
-void runTry(ClientArgs client_args, ClientState *state);
+void runTry(ClientArgs client_args, ServerArgs *server_args,
+						ClientState *state);
 void runQuit(ClientArgs client_args, ClientState *state);
 void runExit(ClientArgs client_args, ClientState *state);
 void runDebug(ClientArgs client_args, ClientState *state);

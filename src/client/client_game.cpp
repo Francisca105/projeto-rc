@@ -13,7 +13,7 @@ void runCmd(Command cmd, ClientArgs client_args, ServerArgs *server_args,
 			runStart(client_args, server_args, state);
 			break;
 		case CMD_TRY:
-			// runTry(args, state);
+			runTry(client_args, server_args, state);
 			break;
 		case CMD_QUIT:
 			// runQuit(args, state);
@@ -43,7 +43,7 @@ void runStart(ClientArgs client_args, ServerArgs *server_args,
 		return;
 	}
 	std::string packet(SNG_LEN, ' ');
-	sprintf(packet.data(), "SNG %s %3d\n", client_args.plid.c_str(),
+	sprintf(packet.data(), "SNG %s %.3d\n", client_args.plid.c_str(),
 					client_args.time);
 	std::string reply(MAX_UDP_REPLY, ' ');
 	if (!sendUdpAndWait(state->fd, packet, reply, *state->addr, nullptr)) {
@@ -55,34 +55,34 @@ void runStart(ClientArgs client_args, ServerArgs *server_args,
 							<< "Closing the application ...";
 		exit(1);
 	}
-	std::cout << reply;
 	if (server_args->status == OK) {
 		state->plid = client_args.plid;
-		state->nT = 0;
+		state->nT = 1;
 	}
+	std::cout << reply;
 }
 
-// void runTry(ClientArgs client_args, ServerArgs *server_args,
-// 							ClientState *state) {
-// 	if (!state->plid.size()) {
-// 		std::cerr << "There is no player active in the application.\n";
-// 		return;
-// 	}
-// 	std::string packet(TRY_LEN, ' ');
-// 	sprintf(packet.data(), "TRY %s %s %d\n", client_args.plid.c_str(),
-// 					client_args.code, state->nT);
-// 	std::string reply(MAX_UDP_REPLY, ' ');
-// 	if (!sendUdpAndWait(state->fd, packet, reply, *state->addr, nullptr)) {
-// 		std::cerr << "Game Server did not replied to the request.\n";
-// 		return;
-// 	}
-// 	if (!parseRTR(reply, server_args)) {
-// 		std::cerr << "Something wrong happened with the server.\n"
-// 							<< "Closing the application ...";
-// 		exit(1);
-// 	}
-// 	std::cout << reply;
-// }
+void runTry(ClientArgs client_args, ServerArgs *server_args,
+						ClientState *state) {
+	if (!state->plid.size()) {
+		std::cerr << "There is no player active in the application.\n";
+		return;
+	}
+	std::string packet(TRY_LEN, ' ');
+	sprintf(packet.data(), "TRY %s %s %d\n", client_args.plid.c_str(),
+					client_args.code.c_str(), state->nT);
+	std::string reply(MAX_UDP_REPLY, ' ');
+	if (!sendUdpAndWait(state->fd, packet, reply, *state->addr, nullptr)) {
+		std::cerr << "Game Server did not replied to the request.\n";
+		return;
+	}
+	if (!parseRTR(reply, server_args)) {
+		std::cerr << "Something wrong happened with the server.\n"
+							<< "Closing the application ...";
+		exit(1);
+	}
+	std::cout << reply;
+}
 
 // void runQuit(ClientArgs args, ClientState *state) {
 

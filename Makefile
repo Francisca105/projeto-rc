@@ -41,7 +41,7 @@ OBJECTS := $(CLIENT_OBJECTS) $(SERVER_OBJECTS) $(COMMON_OBJECTS)
 EXECS := $(CLIENT_EXEC) $(SERVER_EXEC)
 
 # Commands
-.PHONY: all clean fmt fmt-check
+.PHONY: all clean fmt submission
 
 all: $(EXECS)
 
@@ -54,7 +54,7 @@ $(SERVER_EXEC): $(SERVER_OBJECTS) $(COMMON_OBJECTS)
 clean:
 	rm -f $(OBJECTS) $(EXECS) proj_50.zip
 
-fmt: $(SOURCES) $(HEADERS)
+fmt: $(CLIENT_SOURCES) $(CLIENT_HEADERS) $(COMMON_SOURCES) $(COMMON_HEADERS)
 	clang-format -i $^
 
 submission:
@@ -64,5 +64,5 @@ submission:
 	zip -r proj_50.zip proj_50
 	rm -r proj_50
 
-run:
+run: all
 	./client
