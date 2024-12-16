@@ -10,9 +10,11 @@
 
 Command getCmd(std::string buf, int len);
 bool parseSng(std::string buf, int len, std::string &plid, int *time);
-bool parseTry(std::string buf, int len, std::string &plid, std::string &code, int *nt);
+bool parseTry(std::string buf, int len, std::string &plid, std::string &code,
+							int *nt);
 bool parseQut(std::string buf, int len, std::string &plid);
-bool parseDbg(std::string buf, int len, std::string &plid, int *time, std::string &code);
+bool parseDbg(std::string buf, int len, std::string &plid, int *time,
+							std::string &code);
 
 bool parsePlid(std::string &s, int *n, std::string &plid);
 bool parseTime(std::string &s, int *n, int *time);

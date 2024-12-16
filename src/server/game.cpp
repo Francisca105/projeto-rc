@@ -63,7 +63,7 @@ ColorCount countColors(std::vector<Color> colors) {
 
 std::vector<Color> generateRandomColors() {
 	std::vector<Color> colors;
-	std::srand((uint) std::time(nullptr));	 // Seed for random number generation
+	std::srand((uint)std::time(nullptr));	 // Seed for random number generation
 
 	for (int i = 0; i < NUM_COLORS; ++i) {
 		int randomIndex = std::rand() % 6;	// There are 6 colors
