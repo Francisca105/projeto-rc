@@ -6,9 +6,9 @@
 #include "client_game.hpp"
 #include "client_state.hpp"
 
+bool handleCmd(std::string &buf, ClientArgs *client_args,
+							 ServerArgs *server_args, ClientState *state);
 void sigintHandler(int signal);
-void setSignal(int signal, void (*func)(int));
-bool isOnlyWhiteSpace(std::string s);
-void handleCmd(std::string &s, ClientArgs *args, ClientState *state);
+bool isOnlyWhiteSpace(std::string buf);
 
 #endif
