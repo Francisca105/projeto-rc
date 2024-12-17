@@ -3,32 +3,24 @@
 
 #include <string>
 
-#include "client_state.hpp"
+#include "support.hpp"
 
-typedef struct {
-	std::string plid;
-	int time;
-	std::string code;
-} ClientArgs;
-
-enum Command {
-	CMD_START,
-	CMD_TRY,
-	CMD_QUIT,
-	CMD_EXIT,
-	CMD_DEBUG,
-	CMD_SHOWTRIALS,
-	CMD_SCOREBOARD,
-	CMD_ERR
-};
-
-void runCmd(Command cmd, ClientArgs args, ClientState *state);
-void runStart(ClientArgs args, ClientState *state);
-void runTry(ClientArgs args, ClientState *state);
-void runQuit(ClientArgs args, ClientState *state);
-void runExit(ClientArgs args, ClientState *state);
-void runDebug(ClientArgs args, ClientState *state);
-void runShowTrials(ClientArgs args, ClientState *state);
-void runScoreboard(ClientArgs args, ClientState *state);
+bool runCmd(Command cmd, ClientArgs client_args, ServerArgs *server_args,
+						ClientState *state);
+bool runStart(ClientArgs client_args, ServerArgs *server_args,
+							ClientState *state);
+bool runTry(ClientArgs client_args, ServerArgs *server_args,
+						ClientState *state);
+bool runQuit(ServerArgs *server_args, ClientState *state);
+bool runExit(ClientArgs client_args, ClientState *state);
+bool runDebug(ClientArgs client_args, ServerArgs *server_args,
+							ClientState *state);
+bool runShowTrials(ServerArgs *server_args, ClientState *state);
+bool runScoreboard(ClientArgs client_args, ClientState *state);
+/* ------------------------------------------------------------------------- */
+std::string createPacket(Command cmd, ClientArgs args, ClientState state,
+												 bool send);
+std::string createPacket(ClientState state, bool send);
+std::string createPacket(Command cmd, bool send);
 
 #endif

@@ -8,64 +8,74 @@
 #include "client_game.hpp"
 #include "client_parser.hpp"
 #include "client_state.hpp"
-
-volatile sig_atomic_t keep_running = true;
+#include "support.hpp"
 
 int main(int argc, char **argv) {
-	setSignal(SIGINT, sigintHandler);
-
 	ClientState state;
 	initClientState(&state, argc, argv);
-	ClientArgs args;
+	ClientArgs client_args;
+	ServerArgs server_args;
+
+	struct sigaction act;
+	std::memset(&act, 0, sizeof(act));
+	act.sa_handler = sigintHandler;
+	if (sigaction(SIGINT, &act, NULL) == -1) {
+		std::cerr << "An error has occurred while changing how SIGINT is handled."
+							<< std::endl;	 // DEBUG
+		std::perror("signal");	 // DEBUG
+	}
+
+	std::memset(&act, 0, sizeof(act));
+	act.sa_handler = SIG_IGN;
+	if (sigaction(SIGPIPE, &act, NULL) == -1) {
+		std::cerr << "An error has occurred while changing how SIGPIPE is handled."
+							<< std::endl;	 // DEBUG
+		std::perror("signal");	 // DEBUG
+	}
 
 	std::string line;
-	std::cout << "Insert command below:\n";
-	while (keep_running) {
+	std::cout << "Insert command below:" << std::endl;
+	while (KeepRunning) {
 		std::cout << "> ";
 		std::getline(std::cin, line);
 		if (std::cin.fail() or std::cin.bad() or std::cin.eof()) break;
 		if (isOnlyWhiteSpace(line)) continue;
-		handleCmd(line, &args, &state);
-		std::cout << "Insert command below:\n";
+		if (!handleCmd(line, &client_args, &server_args, &state)) break;	// TODO
+		std::cout << "Insert command below:" << std::endl;
 	}
 
-	// send QUT to the GS
-	std::cout << "\nClosing the player application ...\n";
+	// TODO if a game is on, send QUT to the GS
+	if (state.playing) runQuit(&server_args, &state);
+	std::cout << "Closing down the application..." << std::endl;
 
-	return 0;
+	return EXIT_SUCCESS;
 }
 
-void sigintHandler(int signal) {
-	if (signal == SIGINT) keep_running = false;
-}
-
-void setSignal(int signal, void (*func)(int)) {
-	struct sigaction act;
-	std::memset(&act, 0, sizeof(act));
-	act.sa_handler = func;
-	if (sigaction(signal, &act, NULL) == -1) {
-		std::cerr << "Could not change how SIGINT is handled.\n";
-		std::perror("Error - sigaction");
+bool handleCmd(std::string &buf, ClientArgs *client_args,
+							 ServerArgs *server_args, ClientState *state) {
+	Command cmd = getCmd(buf);
+	if (cmd == CMD_INV) {
+		std::cerr << "Unknown command" << std::endl;
+		return true;
 	}
-}
-
-bool isOnlyWhiteSpace(std::string s) {
-	std::size_t len = s.size();
-	for (uint i = 0; i < len; i++)
-		if (!std::isspace(s.at(i))) return false;
+	if (parseCmd(buf, client_args, cmd)) {
+		std::cerr << "Invalid syntax/parameters for the " << buf << " command"
+							<< std::endl;
+		return true;
+	}
+	if (!runCmd(cmd, *client_args, server_args, state)) return false;
 	return true;
 }
 
-void handleCmd(std::string &s, ClientArgs *args, ClientState *state) {
-	Command cmd = getCmd(s);
-	if (cmd == CMD_ERR) {
-		std::cerr << "Unknown command.\n";
-		return;
-	}
-	if (!parseCmd(s, args, cmd)) {
-		std::cerr << "Error parsing " << s << "\n";
-		return;
-	}
-	state->fd = 0;
-	runCmd(cmd, *args, state);
+void sigintHandler(int signal) {
+	(void)(signal);
+	if (!KeepRunning) exit(EXIT_FAILURE);
+	KeepRunning = false;
+}
+
+bool isOnlyWhiteSpace(std::string buf) {
+	std::size_t len = buf.size();
+	for (uint i = 0; i < len; i++)
+		if (!std::isspace(buf.at(i))) return false;
+	return true;
 }
