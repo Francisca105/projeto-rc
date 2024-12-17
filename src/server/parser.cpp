@@ -99,19 +99,30 @@ bool parseTime(std::string &s, int *n, int *time) {
 	return true;
 }
 
-bool parseCode(std::string &s, int *n, std::string &code) {
-	std::string tmp = s;
-	if (*n < CODE_LEN) return false;
-	bool color = true;
-	for (size_t i = 0; i < (size_t)CODE_LEN; i++) {
-		if (color == true) {
-			if (parseColor(s, n) == false) return false;
-		} else {
-			if (parseSpace(s, n) == false) return false;
+bool parseCode(std::string &buf, int *n, std::string &code) {
+	if (buf.size() < CODE_LEN) return false;
+	std::string tmp = buf;
+	char *ptr = tmp.data(), c;
+	for (int i = 0; i < NUM_COLORS; i++) {
+		c = *ptr;
+		switch (c) {
+			case RED:
+			case GREEN:
+			case BLUE:
+			case YELLOW:
+			case ORANGE:
+			case PURPLE:
+				break;
+			default:
+				return false;
 		}
-		color = !color;
+		tmp.erase(0, 1);
+		if (i < 3 and !parseSpace(tmp, n)) return false;
 	}
-	code = tmp;
+	code = buf.substr(0, CODE_LEN);
+	buf.erase(0, CODE_LEN);
+
+	std::cout << "Code: " << code << std::endl;
 	return true;
 }
 
