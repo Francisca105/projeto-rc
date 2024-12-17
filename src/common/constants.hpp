@@ -6,8 +6,8 @@
 #include <string>
 #include <unordered_map>
 
-extern const char *GSIP;
-extern const char *GSPORT;
+// extern const char *GSIP;
+// extern const char *GSPORT;
 
 extern size_t PLID_LEN;
 extern size_t TIME_LEN;
@@ -23,6 +23,7 @@ extern size_t STR_LEN;
 extern size_t SSB_LEN;
 
 extern size_t MAX_UDP_REPLY;
+extern size_t MAX_TCP_REPLY;
 
 extern int UDP_TIMEOUT;
 
@@ -30,17 +31,19 @@ extern std::uint32_t MAX_UDP_TRIES;
 
 extern size_t CMD_LEN;
 
-enum Colors {
-	RED = 'R',
-	GREEN = 'G',
-	BLUE = 'B',
-	YELLOW = 'Y',
-	ORANGE = 'O',
-	PURPLE = 'P'
-};
+extern int MAX_CONNECTIONS;
 
-enum Status { OK, NOK, ERR, DUP, INV, ENT, ETM };
+// enum Colors {
+// 	RED = 'R',
+// 	GREEN = 'G',
+// 	BLUE = 'B',
+// 	YELLOW = 'Y',
+// 	ORANGE = 'O',
+// 	PURPLE = 'P'
+// };
 
-extern std::unordered_map<std::string, Status> Temp;
+// enum Status { OK, NOK, ERR, DUP, INV, ENT, ETM, ACT, FIN };
+
+// extern std::unordered_map<std::string, Status> Temp;
 
 #endif
