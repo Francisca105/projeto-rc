@@ -21,6 +21,7 @@ size_t STR_LEN = std::string("STR PPPPPP\n").size();
 size_t SSB_LEN = std::string("SSB PPPPPP\n").size();
 
 size_t MAX_UDP_REPLY = std::string("RTR SSS C C C C\n").size();
+size_t MAX_TCP_REPLY = 2089;	// CMD SSSSS FNAME FSIZE FDATA\n
 
 int UDP_TIMEOUT = 10;
 
@@ -28,6 +29,8 @@ std::uint32_t MAX_UDP_TRIES = 3;
 
 size_t CMD_LEN = 3;
 
-std::unordered_map<std::string, Status> Temp = {
-		{"OK", OK},		{"NOK", NOK}, {"ERR", ERR}, {"DUP", DUP},
-		{"INV", INV}, {"ENT", ENT}, {"ETM", ETM}};
+int MAX_CONNECTIONS = 10;
+
+// std::unordered_map<std::string, Status> Temp = {
+// 		{"OK", OK},		{"NOK", NOK}, {"ERR", ERR}, {"DUP", DUP},
+// 		{"INV", INV}, {"ENT", ENT}, {"ETM", ETM}};
