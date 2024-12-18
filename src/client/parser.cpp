@@ -1,61 +1,66 @@
-#include "client_parser.hpp"
+#include "parser.hpp"
 
 #include <algorithm>
 #include <iostream>
+#include <unordered_map>
 
-Command getCmd(std::string buf) {
+// It is used to get the status as a string
+std::unordered_map<std::string, Status> StatusDict = {
+		{"OK", OK},		{"NOK", NOK}, {"ERR", ERR}, {"DUP", DUP}, {"INV", INV},
+		{"ENT", ENT}, {"ETM", ETM}, {"ACT", ACT}, {"FIN", FIN}, {"EMPTY", EMPTY}};
+
+Cmd getCmd(std::string buf) {
 	std::string first = buf.substr(0, buf.find(' '));
 	switch (first.front()) {
 		case 's':
 			if (!first.compare("start"))
-				return CMD_START;
+				return Start;
 			else if (!first.compare("show_trials") or !first.compare("st"))
-				return CMD_SHOWTRIALS;
+				return Showtrials;
 			else if (!first.compare("scoreboard") or !first.compare("sb"))
-				return CMD_SCOREBOARD;
+				return Scoreboard;
 			break;
 		case 't':
-			if (!first.compare("try")) return CMD_TRY;
+			if (!first.compare("try")) return Try;
 			break;
 		case 'q':
-			if (!first.compare("quit")) return CMD_QUIT;
+			if (!first.compare("quit")) return Quit;
 			break;
 		case 'e':
-			if (!first.compare("exit")) return CMD_EXIT;
+			if (!first.compare("exit")) return Exit;
 			break;
 		case 'd':
-			if (!first.compare("debug")) return CMD_DEBUG;
+			if (!first.compare("debug")) return Debug;
 			break;
 		default:
 			break;
 	}
-
-	return CMD_INV;
+	return Invalid;
 }
 
-bool parseCmd(std::string &buf, ClientArgs *args, Command cmd) {
+bool parseCmd(std::string &buf, ClArgs *args, Cmd cmd) {
 	bool error = false;
 	std::string first = buf.substr(0, buf.find(' '));
 	std::string remaining =
 			buf.size() == first.size() ? "" : buf.substr(buf.find(' '));
 	switch (cmd) {
-		case CMD_START:
+		case Start:
 			if (!parseStart(remaining, args)) error = true;
 			break;
-		case CMD_TRY:
+		case Try:
 			if (!parseTry(remaining, args)) error = true;
 			break;
-		case CMD_DEBUG:
+		case Debug:
 			if (!parseDebug(remaining, args)) error = true;
 			break;
-		case CMD_QUIT:
-		case CMD_EXIT:
-		case CMD_SHOWTRIALS:
-		case CMD_SCOREBOARD:
+		case Quit:
+		case Exit:
+		case Showtrials:
+		case Scoreboard:
 			rtrim(remaining);
 			if (remaining.size() != 0) error = true;
 			break;
-		case CMD_INV:
+		case Invalid:
 		default:
 			error = true;
 	}
@@ -63,7 +68,7 @@ bool parseCmd(std::string &buf, ClientArgs *args, Command cmd) {
 	return error;
 }
 
-bool parseStart(std::string buf, ClientArgs *args) {
+bool parseStart(std::string buf, ClArgs *args) {
 	if (!parseSpace(buf)) return false;
 	if (!parsePlid(buf, args->plid)) return false;
 	if (!parseSpace(buf)) return false;
@@ -73,7 +78,7 @@ bool parseStart(std::string buf, ClientArgs *args) {
 	return true;
 }
 
-bool parseTry(std::string buf, ClientArgs *args) {
+bool parseTry(std::string buf, ClArgs *args) {
 	if (!parseSpace(buf)) return false;
 	if (!parseCode(buf, args->code)) return false;
 	rtrim(buf);
@@ -81,7 +86,7 @@ bool parseTry(std::string buf, ClientArgs *args) {
 	return true;
 }
 
-bool parseDebug(std::string buf, ClientArgs *args) {
+bool parseDebug(std::string buf, ClArgs *args) {
 	if (!parseSpace(buf)) return false;
 	if (!parsePlid(buf, args->plid)) return false;
 	if (!parseSpace(buf)) return false;
@@ -95,7 +100,7 @@ bool parseDebug(std::string buf, ClientArgs *args) {
 
 /* ------------------------------------------------------------------------- */
 
-bool parseRSG(std::string buf, ServerArgs *args) {
+bool parseRSG(std::string buf, SvArgs *args) {
 	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RSG"))
 		return false;
 	buf.erase(0, CMD_LEN);
@@ -106,7 +111,7 @@ bool parseRSG(std::string buf, ServerArgs *args) {
 	return true;
 }
 
-bool parseRTR(std::string buf, ServerArgs *args) {
+bool parseRTR(std::string buf, SvArgs *args) {
 	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RTR"))
 		return false;
 	buf.erase(0, CMD_LEN);
@@ -126,7 +131,7 @@ bool parseRTR(std::string buf, ServerArgs *args) {
 	return true;
 }
 
-bool parseQUT(std::string buf, ServerArgs *args) {
+bool parseRQT(std::string buf, SvArgs *args) {
 	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RQT"))
 		return false;
 	buf.erase(0, CMD_LEN);
@@ -142,7 +147,7 @@ bool parseQUT(std::string buf, ServerArgs *args) {
 	return true;
 }
 
-bool parseDBG(std::string buf, ServerArgs *args) {
+bool parseRDB(std::string buf, SvArgs *args) {
 	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RDB"))
 		return false;
 	buf.erase(0, CMD_LEN);
@@ -153,7 +158,7 @@ bool parseDBG(std::string buf, ServerArgs *args) {
 	return true;
 }
 
-bool parseRST(std::string buf, ServerArgs *args) {
+bool parseRST(std::string buf, SvArgs *args) {
 	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RST"))
 		return false;
 	buf.erase(0, CMD_LEN);
@@ -163,12 +168,36 @@ bool parseRST(std::string buf, ServerArgs *args) {
 		if (!parseNewline(buf)) return false;
 	} else {
 		if (!parseSpace(buf)) return false;
-		if (!parseFileName(buf, args->fname)) return false;
+		if (!parseFileName(buf, args->trials.fname)) return false;
 		if (!parseSpace(buf)) return false;
-		if (!parseFileSize(buf, &args->fsize)) return false;
+		if (!parseFileSize(buf, &args->trials.fsize)) return false;
 		if (!parseSpace(buf)) return false;
-		if (buf.size() != (size_t)args->fsize) return false;
-		args->fdata = buf;
+		if (buf.size() != (size_t)args->trials.fsize) return false;
+		// return parseTrialsData(buf, args);
+		if (buf.back() != '\n') return false;
+		args->trials.data = buf;
+	}
+	return true;
+}
+
+bool parseRSS(std::string buf, SvArgs *args) {
+	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RSS"))
+		return false;
+	buf.erase(0, CMD_LEN);
+	if (!parseSpace(buf)) return false;
+	if (!parseStatus(buf, &args->status)) return false;
+	if (args->status == EMPTY) {
+		if (!parseNewline(buf)) return false;
+	} else {
+		if (!parseSpace(buf)) return false;
+		if (!parseFileName(buf, args->scoreboard.fname)) return false;
+		if (!parseSpace(buf)) return false;
+		if (!parseFileSize(buf, &args->scoreboard.fsize)) return false;
+		if (!parseSpace(buf)) return false;
+		if (buf.size() != (size_t)args->scoreboard.fsize) return false;
+		// return parseScoreboardData(buf, args);
+		if (buf.back() != '\n') return false;
+		args->scoreboard.data = buf;
 	}
 	return true;
 }
@@ -186,6 +215,21 @@ bool parsePlid(std::string &buf, std::string &plid) {
 	}
 	if (i != PLID_LEN) return false;
 	plid = buf.substr(0, PLID_LEN);
+	buf.erase(0, PLID_LEN);
+	return true;
+}
+
+bool parsePlid(std::string &buf, std::vector<std::string> &vec) {
+	if (!buf.size()) return false;
+	size_t i = 0;
+	char *ptr = buf.data(), c;
+	while ((c = *ptr) != '\0') {
+		if (!std::isdigit(c)) break;
+		i++;
+		ptr++;
+	}
+	if (i != PLID_LEN) return false;
+	vec.push_back(buf.substr(0, PLID_LEN));
 	buf.erase(0, PLID_LEN);
 	return true;
 }
@@ -236,6 +280,31 @@ bool parseCode(std::string &buf, std::string &code) {
 	return true;
 }
 
+bool parseCode(std::string &buf, std::vector<std::string> &codes) {
+	if (buf.size() < CODE_LEN) return false;
+	std::string tmp = buf;
+	char *ptr = tmp.data(), c;
+	for (int i = 0; i < NUM_COLORS; i++) {
+		c = *ptr;
+		switch (c) {
+			case RED:
+			case GREEN:
+			case BLUE:
+			case YELLOW:
+			case ORANGE:
+			case PURPLE:
+				break;
+			default:
+				return false;
+		}
+		tmp.erase(0, 1);
+		if (i < 3 and !parseSpace(tmp)) return false;
+	}
+	codes.push_back(buf.substr(0, CODE_LEN));
+	buf.erase(0, CODE_LEN);
+	return true;
+}
+
 bool parseSpace(std::string &buf) {
 	if (!buf.size() or buf.front() != ' ') return false;
 	buf.erase(0, 1);
@@ -248,8 +317,6 @@ void rtrim(std::string &buf) {
 								.base(),
 						buf.end());
 }
-
-/* ------------------------------------------------------------------------- */
 
 bool parseStatus(std::string &buf, Status *status) {
 	char *ptr = buf.data();
@@ -292,10 +359,18 @@ bool parseNewline(std::string &buf) {
 	return true;
 }
 
+bool parseDigit(std::string &buf, char min, char max, std::vector<char> &vec) {
+	if (!buf.size() or !std::isdigit(buf.front())) return false;
+	if (buf.front() < min or buf.front() > max) return false;
+	vec.push_back(buf.front());
+	buf.erase(0, 1);
+	return true;
+}
+
 bool parseFileName(std::string &buf, std::string &filename) {
 	if (buf.size() < sizeof("n.xxx") - 1) return false;
 	char *ptr = buf.data(), c;
-	size_t i, max_len = std::min(buf.size(), (size_t)FILE_NAME_MAX);
+	size_t i, max_len = std::min(buf.size(), (size_t)MAX_FILENAME);
 	for (i = 0; i < max_len; i++, ptr++) {
 		c = *ptr;
 		if (!std::isalnum(c) and c != '.' and c != '-' and c != '_') break;
@@ -325,30 +400,9 @@ bool parseFileSize(std::string &buf, int *file_size) {
 	long tmp = std::strtol(buf.substr(0, i).c_str(), &end_ptr, 10);
 	if (tmp == 0)
 		return false;
-	else if (errno == ERANGE or tmp < 0 or tmp > FILESIZE_MAX)
+	else if (errno == ERANGE or tmp < 0 or tmp > MAX_FILESIZE)
 		return false;
 	*file_size = (int)tmp;
 	buf.erase(0, i);
 	return true;
 }
-
-// bool parseRST(std::string buf, ServerArgs *args) {
-// 	if (buf.size() < CMD_LEN or buf.substr(0, CMD_LEN).compare("RST"))
-// 		return false;
-// 	buf.erase(0, CMD_LEN);
-// 	if (!parseSpace(buf)) return false;
-// 	if (!parseStatus(buf, &args->status)) return false;
-// 	if (!parseSpace(buf)) return false;
-// }
-
-// bool parseFilename(std::string &buf) {
-// 	if (!buf.size()) return false;
-// 	char c, *ptr = buf.data();
-// 	int i, len = std::min(buf.size(), (size_t) 24);
-// 	for (i = 0; i < len; i++, ptr++) {
-// 		c = *ptr;
-// 		if (!std::isalnum(c) and c != '-' and c != '_' and c != '.') return false;
-// 		if (std::isspace(*ptr)) break;
-// 	}
-// 	if
-// }
