@@ -45,16 +45,16 @@ EXECS := $(CLIENT_EXEC) $(SERVER_EXEC)
 
 all: $(EXECS)
 
-$(CLIENT_EXEC): $(CLIENT_OBJECTS) $(COMMON_OBJECTS)
+$(CLIENT_EXEC): $(CLIENT_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 $(SERVER_EXEC): $(SERVER_OBJECTS) $(COMMON_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 clean:
-	rm -f $(OBJECTS) $(EXECS) proj_50.zip
+	rm -f $(OBJECTS) $(EXECS) proj_50.zip ./gamedata/*
 
-fmt: $(CLIENT_SOURCES) $(CLIENT_HEADERS) $(COMMON_SOURCES) $(COMMON_HEADERS)
+fmt: $(CLIENT_SOURCES) $(CLIENT_HEADERS)
 	clang-format -i $^
 
 submission:
