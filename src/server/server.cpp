@@ -205,7 +205,7 @@ void run_rsg(Parameters *params,
 						 std::unordered_map<std::string, Player> &players) {
 	std::string plid = params->plid;
 	if (auto it = players.find(plid); it != players.end()) {
-		std::cout << "Found player\n";
+		// Player found
 		if (it->second.getGame() == false) {
 			it->second.startGame(params->time);
 			std::cout << "Started new game\n";

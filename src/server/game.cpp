@@ -59,6 +59,16 @@ ColorCount countColors(std::vector<Color> colors) {
 	return colorCount;
 }
 
+std::vector<Color> charToColor(char c1, char c2, char c3, char c4) {
+	std::vector<Color> colors;
+	colors.push_back(static_cast<Color>(c1));
+	colors.push_back(static_cast<Color>(c2));
+	colors.push_back(static_cast<Color>(c3));
+	colors.push_back(static_cast<Color>(c4));
+
+	return colors;
+}
+
 // Game logic
 
 std::vector<Color> generateRandomColors() {

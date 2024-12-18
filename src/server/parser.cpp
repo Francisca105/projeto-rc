@@ -157,8 +157,7 @@ bool parseNt(std::string &s, int *n, int *nt) {
 	if (count != 1) return false;
 	try {
 		int tmp = std::stoi(s.substr(0, 1));
-		if (tmp <= 0 or tmp > MAX_TRIALS)	 // TODO: check if it's >= or >
-			return false;
+		if (tmp <= 0 or tmp > MAX_TRIALS) return false;
 		*nt = tmp;
 	} catch (std::exception const &ex) {
 		return false;
