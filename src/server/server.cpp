@@ -186,34 +186,34 @@ std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
 				msg = "ERR";
 			} else {
 				msg = run_rsg(params, players);
-				std::cout << "--------------------------\n";
-				std::cout << "PLID: " << params->plid << "\n";
-				std::cout << "TIME: " << params->time << "\n";
-				std::cout << "--------------------------\n";
-				std::cout << "MSG: " << msg << "\n";
 			}
 			break;
-		case CMD_TRY:
+		case CMD_TRY:	 // TODO: Implement
+			prefix = "RTR";
+
 			parsing = parseTry(buf, len, params->plid, params->code, &params->nt);
 			if (parsing == false) {
-				// reply("ERR")
+				msg = "ERR";
 			} else {
 				run_try(params, players);
 			}
 			break;
 		case CMD_QUT:
+			prefix = "RQT";
+
 			parsing = parseQut(buf, len, params->plid);
 			if (parsing == false) {
-				// reply("ERR")
+				msg = "ERR";
 			} else {
 				// status = run_qut()
 				// reply(status)
 			}
 			break;
 		case CMD_DBG:
+			prefix = "RDB";
 			parsing = parseDbg(buf, len, params->plid, &params->time, params->code);
 			if (parsing == false) {
-				// reply("ERR")
+				msg = "ERR";
 			} else {
 				// status = run_dbg()
 				// reply(status)
@@ -253,6 +253,30 @@ std::string run_rsg(Parameters *params,
 		players.insert({plid, player});
 		msg = "OK";
 		std::cout << "Started new game\n";
+	}
+
+	return msg;
+}
+
+std::string run_qut(
+		Parameters *params,
+		std::unordered_map<std::string, Player> &players) {	 // TODO: Reveal code
+	std::string plid = params->plid;
+	std::string msg = "";
+
+	if (auto it = players.find(plid); it != players.end()) {
+		// Player found
+		if (it->second.getGame() == true) {
+			it->second.endGame();
+			msg = "OK";
+			std::cout << "Ended game\n";
+		} else {
+			msg = "NOK";
+			std::cout << "No game in progress\n";
+		}
+	} else {
+		msg = "NOK";
+		std::cout << "No player found\n";
 	}
 
 	return msg;
