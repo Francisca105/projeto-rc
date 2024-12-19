@@ -18,12 +18,12 @@ typedef struct parameters Parameters;
 int runServer(std::string port_number, bool verbose);
 int socketInnit(std::string port_number, bool protocol);
 int readUdp(int fd, char *buf, char *host, char *service);
-void parseAndRun(Command cmd, std::string buf, int len, Client client,
-								 Parameters *params, bool verbose,
-								 std::unordered_map<std::string, Player> &players);
+std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
+												Parameters *params, bool verbose,
+												std::unordered_map<std::string, Player> &players);
 
-void run_rsg(Parameters *params,
-						 std::unordered_map<std::string, Player> &players);
+std::string run_rsg(Parameters *params,
+										std::unordered_map<std::string, Player> &players);
 void run_try(Parameters *params,
 						 std::unordered_map<std::string, Player> &players);
 

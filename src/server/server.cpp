@@ -31,6 +31,24 @@ void sigintHandler(int signal) {
 	if (signal == SIGINT) keepRunning = false;
 }
 
+void sendUdpReply(int udp_fd, const std::string &message,
+									const Client &client) {
+	struct addrinfo hints, *res;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_DGRAM;
+
+	if (getaddrinfo(client.host.c_str(), client.port.c_str(), &hints, &res) !=
+			0) {
+		perror("getaddrinfo");
+		return;
+	}
+
+	sendto(udp_fd, message.c_str(), message.size(), 0, res->ai_addr,
+				 res->ai_addrlen);
+	freeaddrinfo(res);
+}
+
 int runServer(std::string port_number, bool verbose) {
 	if (std::signal(SIGINT, sigintHandler) == SIG_ERR)
 		std::cerr << "Failed changing how SIGINT is handled.\n";
@@ -85,12 +103,15 @@ int runServer(std::string port_number, bool verbose) {
 											client.port.data());
 					cmd = getCmd(udp_buf, n);
 					if (cmd == CMD_ERR) {
-						// send ERR to client
+						// sendUdpReply(udp_fd, "ERR", client); TODO: Send error
+
 						if (verbose == true)
 							printVerbose(false, parameters.plid, cmd, client);
 						break;
 					}
-					parseAndRun(cmd, udp_buf, n, client, &parameters, verbose, players);
+					std::string reply = parseAndRun(cmd, udp_buf, n, client, &parameters,
+																					verbose, players);
+					sendUdpReply(udp_fd, reply, client);
 				}
 				if (FD_ISSET(tcp_fd, &fds_loop)) {
 					accept(tcp_fd, NULL, NULL);
@@ -147,22 +168,29 @@ int readUdp(int fd, char *buf, char *host, char *port) {
 	return (int)n;
 }
 
-void parseAndRun(Command cmd, std::string buf, int len, Client client,
-								 Parameters *params, bool verbose,
-								 std::unordered_map<std::string, Player> &players) {
+std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
+												Parameters *params, bool verbose,
+												std::unordered_map<std::string, Player> &players) {
 	bool parsing;
 	buf.erase(0, CMD_LEN);
 	len -= CMD_LEN;
+	std::string prefix = "";
+	std::string msg = "";
 
 	switch (cmd) {
 		case CMD_SNG:
+			prefix = "RSG";
+
 			parsing = parseSng(buf, len, params->plid, &params->time);
 			if (parsing == false) {
-				// reply("ERR")
+				msg = "ERR";
 			} else {
-				run_rsg(params, players);
-				// status = run_sng()
-				// reply(status)
+				msg = run_rsg(params, players);
+				std::cout << "--------------------------\n";
+				std::cout << "PLID: " << params->plid << "\n";
+				std::cout << "TIME: " << params->time << "\n";
+				std::cout << "--------------------------\n";
+				std::cout << "MSG: " << msg << "\n";
 			}
 			break;
 		case CMD_TRY:
@@ -199,17 +227,23 @@ void parseAndRun(Command cmd, std::string buf, int len, Client client,
 			break;
 	}
 	if (verbose == true) printVerbose(parsing, params->plid, cmd, client);
+
+	return prefix + " " + msg + "\n";
 }
 
-void run_rsg(Parameters *params,
-						 std::unordered_map<std::string, Player> &players) {
+std::string run_rsg(Parameters *params,
+										std::unordered_map<std::string, Player> &players) {
 	std::string plid = params->plid;
+	std::string msg = "";
+
 	if (auto it = players.find(plid); it != players.end()) {
 		// Player found
 		if (it->second.getGame() == false) {
 			it->second.startGame(params->time);
+			msg = "OK";
 			std::cout << "Started new game\n";
 		} else {
+			msg = "NOK";
 			std::cout << "Game in progress\n";
 		}
 	} else {
@@ -217,8 +251,11 @@ void run_rsg(Parameters *params,
 		Player player(plid);
 		player.startGame(params->time);
 		players.insert({plid, player});
+		msg = "OK";
 		std::cout << "Started new game\n";
 	}
+
+	return msg;
 }
 
 void run_try(Parameters *params,
