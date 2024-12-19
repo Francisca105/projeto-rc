@@ -148,7 +148,6 @@ bool readChar(std::string &buf, int fd) {
 	if (nwritten == -1) {
 		std::cerr << "Failed to receive a reply from the server" << std::endl;
 		std::perror("[DEBUG] read");	// DEBUG
-		close(fd);
 		return false;
 	}
 	buf += c;
@@ -174,7 +173,6 @@ bool readString(std::string &buf, int fd, size_t size) {
 		if (nwritten == -1) {
 			std::cerr << "Failed to receive the reply from the server" << std::endl;
 			std::perror("[DEBUG] write");	 // DEBUG
-			close(fd);
 			return false;
 		}
 		size -= (size_t)nwritten;
@@ -219,7 +217,6 @@ bool waitTcpPacket(std::string &buf, int fd) {
 	switch (ready) {
 		case 0:
 			std::cout << "Timeout" << std::endl;	// DEBUG
-			close(fd);
 			return false;
 		case -1:
 			std::perror("[DEBUG] select");	// DEBUG
