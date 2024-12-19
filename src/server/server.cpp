@@ -10,6 +10,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "game.hpp"
 #include "parser.hpp"
 
 struct client {
@@ -36,7 +37,10 @@ int runServer(std::string port_number, bool verbose) {
 
 	int udp_fd = socketInnit(port_number, UDP);
 	int tcp_fd = socketInnit(port_number, TCP);
-	std::cout << "The server is running on port " << port_number << ".\n";
+
+	if (verbose)
+		std::cout << "The server is running on port " << port_number << ".\n";
+
 	std::string udp_buf, tcp_buf;
 
 	fd_set fds, fds_loop;
@@ -68,7 +72,8 @@ int runServer(std::string port_number, bool verbose) {
 
 		switch (select(FD_SETSIZE, &fds_loop, NULL, NULL, &timeout)) {
 			case 0:
-				std::cout << "Server is running.\n";
+				std::cout << "Server is still running." << std::endl;
+
 				break;
 			case -1:
 				if (errno != EINTR) errorErrno("select");
@@ -139,7 +144,7 @@ int readUdp(int fd, char *buf, char *host, char *port) {
 	if (n == -1) errorErrno("recvfrom");
 	if (getnameinfo(&addr, addrlen, host, NI_MAXHOST, port, NI_MAXSERV, 0) != 0)
 		errorErrno("getnameinfo");
-	return (int) n;
+	return (int)n;
 }
 
 void parseAndRun(Command cmd, std::string buf, int len, Client client,
@@ -148,6 +153,7 @@ void parseAndRun(Command cmd, std::string buf, int len, Client client,
 	bool parsing;
 	buf.erase(0, CMD_LEN);
 	len -= CMD_LEN;
+
 	switch (cmd) {
 		case CMD_SNG:
 			parsing = parseSng(buf, len, params->plid, &params->time);
@@ -164,8 +170,7 @@ void parseAndRun(Command cmd, std::string buf, int len, Client client,
 			if (parsing == false) {
 				// reply("ERR")
 			} else {
-				// status = run_try()
-				// reply(status)
+				run_try(params, players);
 			}
 			break;
 		case CMD_QUT:
@@ -200,7 +205,7 @@ void run_rsg(Parameters *params,
 						 std::unordered_map<std::string, Player> &players) {
 	std::string plid = params->plid;
 	if (auto it = players.find(plid); it != players.end()) {
-		std::cout << "Found player\n";
+		// Player found
 		if (it->second.getGame() == false) {
 			it->second.startGame(params->time);
 			std::cout << "Started new game\n";
@@ -213,6 +218,22 @@ void run_rsg(Parameters *params,
 		player.startGame(params->time);
 		players.insert({plid, player});
 		std::cout << "Started new game\n";
+	}
+}
+
+void run_try(Parameters *params,
+						 std::unordered_map<std::string, Player> &players) {
+	std::string plid = params->plid;
+	if (auto it = players.find(plid); it != players.end()) {
+		if (it->second.getGame() == true) {
+			// GameUtils::checkGuess(); TODO: check guess
+			// std::cout << "--------------------------\nCODE:\n"
+			// 					<< params->code << "\n\n";
+		} else {
+			// std::cout << "This player has no game in progress\n";
+		}
+	} else {
+		// std::cout << "No player found\n";
 	}
 }
 

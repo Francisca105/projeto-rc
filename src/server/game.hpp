@@ -39,6 +39,12 @@ int isTrialsExceeded(int trials);
 // Converts a color to its char representation
 char colorToChar(Color color);
 
+// Counts the number of colors in a vector
+ColorCount countColors(std::vector<Color> colors);
+
+// Converts chars to a vector of colors
+std::vector<Color> charsToColors(char c1, char c2, char c3, char c4);
+
 /*   Game logic   */
 
 // Generates a sequence of random colors
