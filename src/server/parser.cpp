@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+#include "game.hpp"
+
 #include "../common/common.hpp"
 
 Command getCmd(std::string buf, int len) {
@@ -128,22 +130,9 @@ bool parseCode(std::string &buf, int *n, std::string &code) {
 
 bool parseColor(std::string &s, int *n) {
 	if (*n == 0) return false;
-	switch (s[0]) {
-		case 'R':
-			break;
-		case 'G':
-			break;
-		case 'B':
-			break;
-		case 'Y':
-			break;
-		case 'O':
-			break;
-		case 'P':
-			break;
-		default:
-			return false;
-	}
+	// Check if the first character is a valid color
+	if(!GameUtils::isColorValid(s[0])) return false;
+
 	*n = *n - 1;
 	s.erase(0, 1);
 	return true;
