@@ -2,6 +2,7 @@
 #define CLIENT_PROTOCOL_H
 
 #include <sys/socket.h>
+#include <unistd.h>
 
 #include <string>
 

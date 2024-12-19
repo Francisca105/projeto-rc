@@ -1,6 +1,8 @@
 #ifndef CLIENT_GAME_H
 #define CLIENT_GAME_H
 
+#include <unistd.h>
+
 #include <string>
 
 #include "support.hpp"
