@@ -4,8 +4,8 @@
 #include <iostream>
 
 #include "client.hpp"
+#include "config.hpp"
 #include "parser.hpp"
-#include "state.hpp"
 #include "support.hpp"
 
 int main(int argc, char **argv) {

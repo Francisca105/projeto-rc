@@ -3,6 +3,10 @@
 
 #include "support.hpp"
 
+#define UDP_TIMEOUT 10
+#define UDP_MAX_TRIES 3
+#define TCP_TIMEOUT 10
+
 bool sendUdp(std::string packet, int fd, struct addrinfo addr);
 bool receiveUdp(std::string &packet, int fd);
 bool waitUdp(std::string &packet, int fd);
