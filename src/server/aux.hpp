@@ -58,6 +58,10 @@ class GameFile {
 			const std::string& plid);
 	static bool setupDirectories();
 	static int getGameTime(const std::string& plid);
+	static bool saveScore(const std::string& plid, const std::string& secret_code,
+												int num_trials, char mode);
+	static int calculateScore(int num_trials);
+	static std::string createScoreFileName(const std::string& plid, int score);
 };
 
 enum Command { CMD_ERR, CMD_SNG, CMD_TRY, CMD_QUT, CMD_DBG, CMD_STR, CMD_SSB };

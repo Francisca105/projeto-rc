@@ -195,10 +195,38 @@ int GameFile::getGameTime(const std::string& plid) {
 }
 
 bool GameFile::finishGame(const std::string& plid, char outcome) {
-	// Create player directory if it doesn't exist
+	std::string filename = GAMES_DIR + createGameFileName(plid);
+
+	// Lê as informações necessárias do arquivo antes de movê-lo
+	std::string secret_code;
+	int num_trials = 0;
+	char mode = 'P';
+
+	std::ifstream file(filename);
+	if (file) {
+		std::string first_line;
+		if (std::getline(file, first_line)) {
+			// Parse primeira linha: PPPPPP M CCCC T YYYY-MM-DD HH:MM:SS s
+			std::istringstream iss(first_line);
+			std::string plid_str;
+			iss >> plid_str >> mode >> secret_code;
+
+			// Conta número de tentativas (linhas começando com "T:")
+			std::string line;
+			while (std::getline(file, line)) {
+				if (line.substr(0, 2) == "T:") {
+					num_trials++;
+				}
+			}
+		}
+		file.close();
+	}
+
+	// Cria diretório do jogador se não existir
 	std::string playerDir = GAMES_DIR + plid + "/";
 	system(("mkdir -p " + playerDir).c_str());
 
+	// Cria nome do arquivo com timestamp
 	auto now = std::chrono::system_clock::now();
 	auto now_tm = std::chrono::system_clock::to_time_t(now);
 	std::tm* ltm = std::localtime(&now_tm);
@@ -208,21 +236,76 @@ bool GameFile::finishGame(const std::string& plid, char outcome) {
 
 	std::string newFilename =
 			playerDir + timestamp + "_" + std::string(1, outcome) + ".txt";
-	std::string oldFilename = GAMES_DIR + createGameFileName(plid);
 
-	// Add final line with game end time
-	std::ofstream file(oldFilename, std::ios::app);
+	// Adiciona linha final com tempo de término
+	std::ofstream outfile(filename, std::ios::app);
+	if (!outfile) return false;
+
+	outfile << std::put_time(ltm, "%Y-%m-%d %H:%M:%S") << " "
+					<< std::chrono::duration_cast<std::chrono::seconds>(
+								 now - getGameStartTime(plid))
+								 .count()
+					<< "\n";
+	outfile.close();
+	std::cout << "Game finished\n";
+	std::cout << "Trials: " << num_trials << std::endl;
+	std::cout << "Secret code: " << secret_code << std::endl;
+	std::cout << "Mode: " << mode << std::endl;
+	std::cout << "Outcome: " << outcome << std::endl;
+
+	// Se o jogo foi ganho (outcome == 'W'), salva o score
+	if (outcome == 'W') {
+		saveScore(plid, secret_code, num_trials + 1, mode);
+	}
+
+	// Move o arquivo
+	return rename(filename.c_str(), newFilename.c_str()) == 0;
+}
+
+bool GameFile::saveScore(const std::string& plid,
+												 const std::string& secret_code, int num_trials,
+												 char mode) {
+	// Calcula o score baseado no número de tentativas
+	int score = calculateScore(num_trials);
+
+	// Cria o nome do arquivo no formato (score)_PLID_DDMMYYYY_HHMMSS.txt
+	std::string filename = createScoreFileName(plid, score);
+
+	// Cria o diretório SCORES se não existir
+	system(("mkdir -p " + std::string(SCORES_DIR)).c_str());
+
+	// Abre o arquivo para escrita
+	std::string full_path = std::string(SCORES_DIR) + filename;
+	std::ofstream file(full_path);
 	if (!file) return false;
 
-	file << std::put_time(ltm, "%Y-%m-%d %H:%M:%S") << " "
-			 << std::chrono::duration_cast<std::chrono::seconds>(
-							now - getGameStartTime(plid))
-							.count()
-			 << "\n";
-	file.close();
+	// Escreve a linha com o formato: SSS PPPPPP CCCC N mode
+	file << std::setfill('0') << std::setw(3) << score << " " << plid << " "
+			 << secret_code << " " << num_trials << " " << mode;
 
-	// Move file
-	return rename(oldFilename.c_str(), newFilename.c_str()) == 0;
+	return true;
+}
+
+int GameFile::calculateScore(int num_trials) {
+	// Score é inversamente proporcional ao número de tentativas
+	// Por exemplo: começando com 100 e diminuindo 10 por tentativa
+	int score = 100 - ((num_trials - 1) * 10);
+	if (score < 0) score = 0;
+	return score;
+}
+
+std::string GameFile::createScoreFileName(const std::string& plid, int score) {
+	// Obtém a data e hora atual
+	auto now = std::chrono::system_clock::now();
+	auto now_time_t = std::chrono::system_clock::to_time_t(now);
+	std::tm* now_tm = std::localtime(&now_time_t);
+
+	// Formata o nome do arquivo
+	std::stringstream ss;
+	ss << std::setfill('0') << std::setw(3) << score << "_" << plid << "_"
+		 << std::put_time(now_tm, "%d%m%Y_%H%M%S") << ".txt";
+
+	return ss.str();
 }
 
 std::chrono::system_clock::time_point GameFile::getGameStartTime(
