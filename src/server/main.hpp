@@ -3,7 +3,7 @@
 
 #include <signal.h>
 
-extern volatile sig_atomic_t KeepRunning;
+extern volatile sig_atomic_t keepRunning;
 
 #define SERVER_TIMEOUT 30
 

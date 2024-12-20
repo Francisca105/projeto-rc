@@ -606,11 +606,7 @@ void sendActiveGame(std::string plid, int fd) {
 	time_t now;
 	time(&now);
 	int remaining = (int)((double)max_time - difftime(now, (time_t)start));
-	std::cout << "1:" << fdata;
-	fdata.erase(0, 1);
-	std::cout << "2:" << fdata;
 	fdata.append(std::to_string(remaining) + "\n");
-	std::cout << "3:" << fdata;
 	size_t fsize = fdata.size();
 
 	std::string packet = "RST ACT trials_" + plid + ".txt " +
@@ -624,14 +620,23 @@ void sendLastGame(std::string plid, int fd) {
 		std::cerr << "Error opening file" << std::endl;
 	}
 
-	std::stringstream content;
+	std::string data;
 	std::ifstream file(fname);
 
 	if (file.is_open()) {
-		content << file.rdbuf();
+		std::string line;
+		while (std::getline(file, line)) {
+			data += line + "\n";
+		}
+
+		if (file.bad()) {
+			std::cerr << "Error reading file" << std::endl;
+			file.close();
+			return;
+		}
+
 		file.close();
 
-		std::string data = content.str();
 		std::string packet = "RST FIN trials" + plid + ".txt " +
 												 std::to_string(data.size()) + " " + data + "\n";
 		sendTcp(packet, fd);

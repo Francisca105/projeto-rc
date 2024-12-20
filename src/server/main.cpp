@@ -9,7 +9,7 @@
 #include "config.hpp"
 #include "server.hpp"
 
-volatile sig_atomic_t KeepRunning = true;
+volatile sig_atomic_t keepRunning = true;
 
 int main(int argc, char **argv) {
 	Config config;
@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
 	struct timeval timeout;
 	int ready;
 
-	while (KeepRunning) {
+	while (keepRunning) {
 		loop = set;
 		std::memset(&timeout, 0, sizeof(timeout));
 		timeout.tv_sec = SERVER_TIMEOUT;
@@ -83,6 +83,6 @@ int main(int argc, char **argv) {
 
 void sigintHandler(int signal) {
 	(void)(signal);
-	if (!KeepRunning) exit(EXIT_FAILURE);
-	KeepRunning = false;
+	if (!keepRunning) exit(EXIT_FAILURE);
+	keepRunning = false;
 }
