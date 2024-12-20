@@ -45,10 +45,14 @@ ColorCount countColors(std::vector<Color> colors);
 // Converts chars to a vector of colors
 std::vector<Color> charsToColors(char c1, char c2, char c3, char c4);
 
+std::string colorsToString(std::vector<Color> colors);
+
+std::string colorsToStringWithSpaces(std::vector<Color> colors);
+
 /*   Game logic   */
 
 // Generates a sequence of random colors
-std::vector<Color> generateRandomColors();
+std::vector<Color> generateCode();
 
 TrialResult checkGuess(std::vector<Color> secret, std::vector<Color> guess);
 }	 // namespace GameUtils

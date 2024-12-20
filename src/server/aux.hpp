@@ -2,12 +2,17 @@
 #define AUX_H
 
 #include <iostream>
+#include <vector>
+
+#include "../common/common.hpp"
 
 class Player {
  private:
 	std::string plid;
 	bool game = false;
 	int time = 0;
+	std::vector<Color> code;
+	int trials = 0;
 
  public:
 	Player(std::string s);
@@ -15,6 +20,11 @@ class Player {
 	bool getGame();
 	int getTime();
 	void startGame(int t);
+	void startGame(int t, std::vector<Color> c);
+	std::vector<Color> getCode();
+	int getTrials();
+	void incrementTrials();
+	int compareTrials(int t);
 	void endGame();
 };
 

@@ -27,6 +27,9 @@ std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
 std::string run_rsg(Parameters *params,
 										std::unordered_map<std::string, Player> &players);
 
+std::string run_dbg(Parameters *params,
+										std::unordered_map<std::string, Player> &players);
+
 std::string run_qut(Parameters *params,
 										std::unordered_map<std::string, Player> &players);
 

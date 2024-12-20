@@ -59,7 +59,7 @@ ColorCount countColors(std::vector<Color> colors) {
 	return colorCount;
 }
 
-std::vector<Color> charToColor(char c1, char c2, char c3, char c4) {
+std::vector<Color> charsToColors(char c1, char c2, char c3, char c4) {
 	std::vector<Color> colors;
 	colors.push_back(static_cast<Color>(c1));
 	colors.push_back(static_cast<Color>(c2));
@@ -69,9 +69,27 @@ std::vector<Color> charToColor(char c1, char c2, char c3, char c4) {
 	return colors;
 }
 
+std::string colorsToString(std::vector<Color> colors) {
+	std::string str;
+	for (Color color : colors) {
+		str.push_back(colorToChar(color));
+	}
+	return str;
+}
+
+std::string colorsToStringWithSpaces(std::vector<Color> colors) {
+	std::string str;
+	for (Color color : colors) {
+		str.push_back(colorToChar(color));
+		str.push_back(' ');
+	}
+	str.pop_back();	 // Remove last space
+	return str;
+}
+
 // Game logic
 
-std::vector<Color> generateRandomColors() {
+std::vector<Color> generateCode() {
 	std::vector<Color> colors;
 	std::srand((uint)std::time(nullptr));	 // Seed for random number generation
 

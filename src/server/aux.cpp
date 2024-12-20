@@ -1,5 +1,6 @@
 #include "aux.hpp"
 
+#include "game.hpp"
 Player::Player(std::string s) {
 	plid = s;
 };
@@ -16,14 +17,41 @@ int Player::getTime() {
 	return time;
 }
 
+std::vector<Color> Player::getCode() {
+	return code;
+}
+
+int Player::getTrials() {
+	return trials;
+}
+
+void Player::incrementTrials() {
+	trials++;
+}
+
+int Player::compareTrials(int t) {
+	return t == trials;
+}
+
 void Player::startGame(int t) {
 	game = true;
 	time = t;
+	code = GameUtils::generateCode();
+	trials = 0;
+}
+
+void Player::startGame(int t, std::vector<Color> c) {
+	game = true;
+	time = t;
+	code = c;
+	trials = 0;
 }
 
 void Player::endGame() {
 	game = false;
 	time = 0;
+	trials = 0;
+	code.clear();
 }
 
 std::string getCmdName(Command cmd) {

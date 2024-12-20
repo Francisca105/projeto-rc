@@ -202,11 +202,12 @@ std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
 			prefix = "RQT";
 
 			parsing = parseQut(buf, len, params->plid);
+			std::cout << "Parsing: " << parsing << std::endl;
 			if (parsing == false) {
 				msg = "ERR";
 			} else {
-				// status = run_qut()
-				// reply(status)
+				msg = run_qut(params, players);
+				std::cout << "Message: " << msg << std::endl;
 			}
 			break;
 		case CMD_DBG:
@@ -215,8 +216,7 @@ std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
 			if (parsing == false) {
 				msg = "ERR";
 			} else {
-				// status = run_dbg()
-				// reply(status)
+				msg = run_dbg(params, players);
 			}
 			break;
 		case CMD_STR:
@@ -227,7 +227,7 @@ std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
 			break;
 	}
 	if (verbose == true) printVerbose(parsing, params->plid, cmd, client);
-
+	std::cout << "Reply: " << prefix << " " << msg << "\n";
 	return prefix + " " + msg + "\n";
 }
 
@@ -258,18 +258,52 @@ std::string run_rsg(Parameters *params,
 	return msg;
 }
 
-std::string run_qut(
-		Parameters *params,
-		std::unordered_map<std::string, Player> &players) {	 // TODO: Reveal code
+std::string run_dbg(Parameters *params,
+										std::unordered_map<std::string, Player> &players) {
 	std::string plid = params->plid;
+	std::string msg = "";
+	std::vector<Color> code =
+			GameUtils::charsToColors(params->code.at(0), params->code.at(2),
+															 params->code.at(4), params->code.at(6));
+
+	std::cout << "Code: " << params->code << std::endl;
+
+	if (auto it = players.find(plid); it != players.end()) {
+		// Player found
+		if (it->second.getGame() == false) {
+			it->second.startGame(params->time, code);
+			msg = "OK";
+			std::cout << "Started new game\n";
+		} else {
+			msg = "NOK";
+			std::cout << "Game in progress\n";
+		}
+	} else {
+		std::cout << "No player found\n";
+		Player player(plid);
+		player.startGame(params->time, code);
+		players.insert({plid, player});
+		msg = "OK";
+		std::cout << "Started new game\n";
+	}
+
+	return msg;
+}
+
+std::string run_qut(Parameters *params,
+										std::unordered_map<std::string, Player> &players) {
+	std::string plid = params->plid;
+	std::cout << "PLID: " << plid << std::endl;
 	std::string msg = "";
 
 	if (auto it = players.find(plid); it != players.end()) {
 		// Player found
 		if (it->second.getGame() == true) {
+			std::string code =
+					GameUtils::colorsToStringWithSpaces(it->second.getCode());
+			std::cout << "Code: " << code << std::endl;
 			it->second.endGame();
-			msg = "OK";
-			std::cout << "Ended game\n";
+			msg = "OK " + code;
 		} else {
 			msg = "NOK";
 			std::cout << "No game in progress\n";
