@@ -1,4 +1,4 @@
-#include "state.hpp"
+#include "config.hpp"
 
 #include <arpa/inet.h>
 #include <netdb.h>

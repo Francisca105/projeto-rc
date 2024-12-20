@@ -1,158 +1,524 @@
 #include "game.hpp"
 
+#include <time.h>
+
 #include <cstdlib>
 #include <ctime>
-#include <string>
-#include <vector>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <set>
+#include <unordered_map>
 
-namespace GameUtils {
-// Verifications
+#include <exception>
 
-int isColorValid(char c) {
-	return c == RED || c == GREEN || c == BLUE || c == YELLOW || c == ORANGE ||
-				 c == PURPLE;
+bool hasActiveGame(std::string plid) {
+	return std::filesystem::exists("./server/game_" + plid + ".txt");
 }
 
-int isGuessValid(char c1, char c2, char c3, char c4) {
-	return isColorValid(c1) && isColorValid(c2) && isColorValid(c3) &&
-				 isColorValid(c4);
+bool startGame(std::string plid, int max_time, std::string &code) {
+	std::string mode = " D ";
+	if (code.front() == '\0')	{
+		generateCode(code);
+		mode = " P ";
+	}
+
+	time_t start;
+	time(&start);
+	struct tm *now;
+	char time_str[72] = {'\0'};	 // fixed value so compiler doesn't complain
+	now = gmtime(&start);
+	sprintf(time_str, "%4d-%02d-%02d %02d:%02d:%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
+
+	std::ofstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::ostringstream oss;
+		oss << plid << mode << code << " " << max_time << " " << time_str << " "
+				<< start << "\n";
+		file << oss.str();
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error saving file" << std::endl;
+			file.close();
+			return false;
+		}
+		file.close();
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return false;
+	}
+
+	return true;
 }
 
-int isTrialsExceeded(int trials) {
-	return trials >= MAX_TRIALS;
+void generateCode(std::string &code) {
+	char colors[] = {'R', 'G', 'B', 'Y', 'P', 'O'};
+	std::srand((unsigned int)std::time(0));
+	for (size_t i = 0; i < CODE_SIZE; i++) {
+		code[i] = colors[rand() % NUM_COLORS];
+	}
 }
 
-// Auxiliary functions
+bool checkTimeout(std::string plid, std::string &code) {
+	if (!hasActiveGame(plid)) return false;
 
-char colorToChar(Color color) {
-	return static_cast<char>(color);
+	std::ifstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::string _, tmp;
+		int max_time;
+		long seconds;
+
+		file >> _ >> _ >> tmp >> max_time >> _ >> _ >> seconds;
+		code.resize(sizeof("C C C C") - 1);
+		sprintf(code.data(), "%c %c %c %c", tmp[0], tmp[1], tmp[2], tmp[3]);
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error reading file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		file.close();
+
+		time_t curr_time;
+		time(&curr_time);
+		if (std::difftime(curr_time, (time_t)seconds) >= max_time) {
+			std::cout << "[LOG] "<< plid << " - Max playtime exceeded" << std::endl;
+			timeoutGame(plid);
+			return true;
+		}
+
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return false;
+	}
+	return false;
 }
 
-ColorCount countColors(std::vector<Color> colors) {
-	ColorCount colorCount = {0, 0, 0, 0, 0, 0};
+bool timeoutGame(std::string plid) {
+	time_t end;
+	time(&end);
+	struct tm *now;
+	char time_str[68] = {'\0'};		 // fixed value so compiler doesn't complain
+	char time_str_f[72] = {'\0'};	 // fixed value so compiler doesn't complain
+	now = gmtime(&end);
+	sprintf(time_str, "%4d-%02d-%02d %02d:%02d:%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
+	sprintf(time_str_f, "%4d%02d%02d_%02d%02d%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
 
-	for (Color color : colors) {
-		switch (color) {
-			case RED:
-				colorCount.red++;
-				break;
-			case GREEN:
-				colorCount.green++;
-				break;
-			case BLUE:
-				colorCount.blue++;
-				break;
-			case YELLOW:
-				colorCount.yellow++;
-				break;
-			case ORANGE:
-				colorCount.orange++;
-				break;
-			case PURPLE:
-				colorCount.purple++;
-				break;
-			default:
-				break;
+	std::fstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::string _;
+		int max_time;
+
+		file >> _ >> _ >> _ >> max_time;
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error reading file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		std::ostringstream oss;
+		oss << time_str << " " << max_time << "\n";
+		file.seekp(0, std::ios_base::end);
+		file << oss.str();
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error writing file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		file.close();
+
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return false;
+	}
+
+	std::filesystem::path p = std::filesystem::current_path();
+	if (!std::filesystem::is_directory(p / "server/games" / plid)) {
+		if (!std::filesystem::create_directory(p / "server/games" / plid)) {
+			std::cerr << "[DEBUG] Error creating directory" << std::endl;
+			return false;
 		}
 	}
 
-	return colorCount;
+	std::string old_filename = "game_" + plid + ".txt";
+	std::string new_filename = std::string(time_str_f) + "_T.txt";
+	std::filesystem::rename(p / "server" / old_filename,
+													p / "server/games" / plid / new_filename);
+	std::filesystem::remove(old_filename);
+
+	return true;
 }
 
-std::vector<Color> charToColor(char c1, char c2, char c3, char c4) {
-	std::vector<Color> colors;
-	colors.push_back(static_cast<Color>(c1));
-	colors.push_back(static_cast<Color>(c2));
-	colors.push_back(static_cast<Color>(c3));
-	colors.push_back(static_cast<Color>(c4));
+bool winGame(std::string plid, std::string code, char nT) {
+	time_t end;
+	time(&end);
+	struct tm *now;
+	char time_str[68] = {'\0'};		 // fixed value so compiler doesn't complain
+	char time_str_f[72] = {'\0'};	 // fixed value so compiler doesn't complain
+	now = gmtime(&end);
+	sprintf(time_str, "%4d-%02d-%02d %02d:%02d:%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
+	sprintf(time_str_f, "%4d%02d%02d_%02d%02d%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
 
-	return colors;
+	char mode;
+	std::fstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::string _;
+		int max_time;
+		long start;
+
+		file >> _ >> mode >> _ >> max_time >> _ >> _ >> start;
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error reading file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		double time = difftime((time_t)end, (time_t)start);
+		std::ostringstream oss;
+		oss << time_str << " " << time << "\n";
+		file.seekp(0, std::ios_base::end);
+		file << oss.str();
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error writing file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		file.close();
+
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return false;
+	}
+
+	std::filesystem::path p = std::filesystem::current_path();
+	if (!std::filesystem::is_directory(p / "server/games" / plid)) {
+		if (!std::filesystem::create_directory(p / "server/games" / plid)) {
+			std::cerr << "[DEBUG] Error creating directory" << std::endl;
+			return false;
+		}
+	}
+	saveScore(0,plid,time_str_f,code,nT,mode);
+
+	std::string old_filename = "game_" + plid + ".txt";
+	std::string new_filename = std::string(time_str_f) + "_W.txt";
+	std::filesystem::rename(p / "server" / old_filename,
+													p / "server/games" / plid / new_filename);
+	std::filesystem::remove(old_filename);
+
+	return true;
 }
 
-// Game logic
+void saveScore(int score, std::string plid, char *time_str, std::string code, char tries, char mode) {
+	std::string score_str(3, '\0'), time_s(time_str);
+	sprintf(score_str.data(), "%03d", score);
+	std::string mode_str = mode == 'P' ? "PLAY" : "DEBUG";
+	
+	std::fstream file("./server/scores/" + score_str + "_" + plid + "_" + time_s + ".txt", std::ios::out);
+	if (file.is_open()) {
+		std::ostringstream oss;
+		oss << score_str << " " << plid << " " << code << " "<< tries << " " << mode_str << "\n";
+		file.seekp(0, std::ios_base::end);
+		file << oss.str();
 
-std::vector<Color> generateRandomColors() {
-	std::vector<Color> colors;
-	std::srand((uint)std::time(nullptr));	 // Seed for random number generation
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error writing file" << std::endl;
+			file.close();
+			return ;
+		}
 
-	for (int i = 0; i < NUM_COLORS; ++i) {
-		int randomIndex = std::rand() % 6;	// There are 6 colors
-		switch (randomIndex) {
-			case 0:
-				colors.push_back(RED);
-				break;
-			case 1:
-				colors.push_back(GREEN);
-				break;
-			case 2:
-				colors.push_back(BLUE);
-				break;
-			case 3:
-				colors.push_back(YELLOW);
-				break;
-			case 4:
-				colors.push_back(ORANGE);
-				break;
-			case 5:
-				colors.push_back(PURPLE);
-				break;
-			default:
-				break;
+		file.close();
+
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return ;
+	}
+}
+
+bool failGame(std::string plid) {
+	time_t end;
+	time(&end);
+	struct tm *now;
+	char time_str[68] = {'\0'};		 // fixed value so compiler doesn't complain
+	char time_str_f[72] = {'\0'};	 // fixed value so compiler doesn't complain
+	now = gmtime(&end);
+	sprintf(time_str, "%4d-%02d-%02d %02d:%02d:%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
+	sprintf(time_str_f, "%4d%02d%02d_%02d%02d%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
+
+	std::fstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::string _;
+		int max_time;
+
+		file >> _ >> _ >> _ >> max_time;
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error reading file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		std::ostringstream oss;
+		oss << time_str << " " << max_time << "\n";
+		file.seekp(0, std::ios_base::end);
+		file << oss.str();
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error writing file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		file.close();
+
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return false;
+	}
+
+	std::filesystem::path p = std::filesystem::current_path();
+	if (!std::filesystem::is_directory(p / "server/games" / plid)) {
+		if (!std::filesystem::create_directory(p / "server/games" / plid)) {
+			std::cerr << "[DEBUG] Error creating directory" << std::endl;
+			return false;
 		}
 	}
 
-	return colors;
+	std::string old_filename = "game_" + plid + ".txt";
+	std::string new_filename = std::string(time_str_f) + "_F.txt";
+	std::filesystem::rename(p / "server" / old_filename,
+													p / "server/games" / plid / new_filename);
+	std::filesystem::remove(old_filename);
+
+	return true;
 }
 
-TrialResult checkGuess(std::vector<Color> secret, std::vector<Color> guess) {
-	TrialResult result = {0, 0};
+bool quitGame(std::string plid, std::string &key) {
+	time_t end;
+	time(&end);
+	struct tm *now;
+	char time_str[68] = {'\0'};		 // fixed value so compiler doesn't complain
+	char time_str_f[72] = {'\0'};	 // fixed value so compiler doesn't complain
+	now = gmtime(&end);
+	sprintf(time_str, "%4d-%02d-%02d %02d:%02d:%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
+	sprintf(time_str_f, "%4d%02d%02d_%02d%02d%02d", now->tm_year + 1900,
+					now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min,
+					now->tm_sec);
 
-	ColorCount secretCount = countColors(secret);
-	ColorCount guessCount = countColors(guess);
+	std::fstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::string _;
+		int max_time;
 
-	for (size_t i = 0; i < NUM_COLORS; ++i) {
-		if (secret[i] == guess[i]) {
-			result.correctColorAndPosition++;
-			switch (secret[i]) {
-				case RED:
-					secretCount.red--;
-					guessCount.red--;
-					break;
-				case GREEN:
-					secretCount.green--;
-					guessCount.green--;
-					break;
-				case BLUE:
-					secretCount.blue--;
-					guessCount.blue--;
-					break;
-				case YELLOW:
-					secretCount.yellow--;
-					guessCount.yellow--;
-					break;
-				case ORANGE:
-					secretCount.orange--;
-					guessCount.orange--;
-					break;
-				case PURPLE:
-					secretCount.purple--;
-					guessCount.purple--;
-					break;
-				default:
-					break;
+		file >> _ >> _ >> _ >> max_time;
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error reading file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		sprintf(key.data(), "%c %c %c %c", _[0], _[1], _[2], _[3]);
+
+		std::ostringstream oss;
+		oss << time_str << " " << max_time << "\n";
+		file.seekp(0, std::ios_base::end);
+		file << oss.str();
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error writing file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		file.close();
+
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return false;
+	}
+
+	std::filesystem::path p = std::filesystem::current_path();
+	if (!std::filesystem::is_directory(p / "server/games" / plid)) {
+		if (!std::filesystem::create_directory(p / "server/games" / plid)) {
+			std::cerr << "[DEBUG] Error creating directory" << std::endl;
+			return false;
+		}
+	}
+
+	std::string old_filename = "game_" + plid + ".txt";
+	std::string new_filename = std::string(time_str_f) + "_Q.txt";
+	std::filesystem::rename(p / "server" / old_filename,
+													p / "server/games" / plid / new_filename);
+	std::filesystem::remove(old_filename);
+
+	return true;
+}
+
+bool registerTry(std::string plid, std::string guess, int nB, int nW) {
+	std::fstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::string _;
+		long start;
+
+		file >> _ >> _ >> _ >> _ >> _ >> _ >> start;
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error saving file" << std::endl;
+			file.close();
+			return false;
+		}
+
+		time_t now;
+		time(&now);
+		double s = difftime(now, (time_t)start);
+
+		std::ostringstream oss;
+		oss << "T: " << guess << " " << nB << " " << nW << " "
+				<< s << "\n";
+		file.seekp(0, std::ios_base::end);
+		file << oss.str();
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error saving file" << std::endl;
+			file.close();
+			return false;
+		}
+		file.close();
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return false;
+	}
+
+	return true;
+}
+
+Rtr checkTry(std::string plid, std::string code, int nT) {
+	std::string key;
+	std::vector<std::string> guesses;
+
+	getTrials(plid, key, guesses);
+
+	if (guesses.size() and isInv(code, guesses.back(), nT, (int)guesses.size())) return INV;
+	if (isDup(code, guesses)) return DUP;
+	if (isEnt(code, key, nT)) return ENT;
+	if (nT == (int)guesses.size() and code.compare(guesses.back())) return Ok;
+	return OK;
+}
+
+
+bool isInv(std::string guess, std::string last, int nT, int tries) {
+	if (nT == tries and guess.compare(last)) return true;
+	if (nT < tries or nT > tries + 1) return true;
+	return false;
+}
+
+bool isDup(std::string guess, std::vector<std::string> guesses) {
+	for (size_t i = 0; i < guesses.size(); i++) {
+		if (!guesses.at(i).compare(guess)) return true;
+	}
+	return false;
+}
+
+bool isEnt(std::string guess, std::string key, int nT) {
+	if (guess.compare(key) and nT == MAX_TRIES) return true;
+	return false;
+}
+
+void getTrials(std::string plid, std::string &key, std::vector<std::string> &guesses) {
+	std::ifstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		std::string line;
+		std::getline(file, line);
+		key = line.substr(sizeof("PPPPPP M ") - 1, CODE_SIZE);
+
+		bool good = false;
+		while (file) {
+			std::getline(file, line);
+			if (file.eof()) {
+				good = true;
+				break;
 			}
+
+			std::istringstream iss(line);
+    	std::string _;
+    	iss >> _ >> _;
+    	guesses.push_back(_);
 		}
+
+		if (!good and file.fail()) {
+			std::cerr << "[DEBUG] Error reading file" << std::endl;
+			file.close();
+			return;
+		}
+
+		file.close();
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return;
 	}
-
-	// Count correct colors in wrong positions
-	result.correctColor += std::min(secretCount.red, guessCount.red);
-	result.correctColor += std::min(secretCount.green, guessCount.green);
-	result.correctColor += std::min(secretCount.blue, guessCount.blue);
-	result.correctColor += std::min(secretCount.yellow, guessCount.yellow);
-	result.correctColor += std::min(secretCount.orange, guessCount.orange);
-	result.correctColor += std::min(secretCount.purple, guessCount.purple);
-
-	return result;
 }
 
-}	 // namespace GameUtils
+std::string getKey(std::string plid) {
+
+	std::string key, _;
+	std::ifstream file("./server/game_" + plid + ".txt");
+	if (file.is_open()) {
+		file >> _ >> _ >> key;
+
+		if (file.fail()) {
+			std::cerr << "[DEBUG] Error reading file" << std::endl;
+			file.close();
+			return std::string();
+		}
+
+		file.close();
+	} else {
+		std::cerr << "[DEBUG] Error opening file" << std::endl;
+		return std::string();
+	}
+	return key;
+}
+
+void aOk(std::string guess, std::string key, int *nB, int *nW) {
+	*nB = 0;
+	*nW = 0;
+	key.erase(1,1).erase(2,1).erase(3,1).erase(4,1);
+	// Count black pegs (correct position and color)
+	std::unordered_map<char, int> remainingChars; // Tracks unmatched chars in key
+	for (size_t i = 0; i < guess.size(); ++i) {
+			if (guess[i] == key[i]) {
+					(*nB)++;
+			} else {
+					remainingChars[key[i]]++;
+			}
+	}
+
+	// Count white pegs (correct color but wrong position)
+	for (size_t i = 0; i < guess.size(); ++i) {
+			if (guess[i] != key[i] && remainingChars[guess[i]] > 0) {
+					(*nW)++;
+					remainingChars[guess[i]]--;
+			}
+	}
+}

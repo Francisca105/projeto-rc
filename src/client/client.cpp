@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "config.hpp"
 #include "parser.hpp"
 #include "protocol.hpp"
 
@@ -87,6 +88,8 @@ bool runTry(ClArgs cl_args, SvArgs sv_args, Config config, State *state) {
 		if (sv_args.nB == 4) {
 			std::cout << "Well done! You guessed the key in " << sv_args.nT
 								<< " trials" << std::endl;
+			state->playing = false;
+			state->plid.clear();
 		} else {
 			std::cout << "nB = " << sv_args.nB << ", nW = " << sv_args.nW
 								<< std::endl;
@@ -286,7 +289,7 @@ std::string createReply(Cmd cmd) {
 }
 
 bool saveTrials(Trials trials) {
-	std::ofstream file(FILES_DIR + trials.fname);
+	std::ofstream file(TRIALS_DIR + trials.fname);
 	if (file.is_open()) {
 		file << trials.data;
 		if (file.fail()) {
@@ -304,7 +307,7 @@ bool saveTrials(Trials trials) {
 }
 
 bool saveScoreboard(ScoreBoard scoreboard) {
-	std::ofstream file(FILES_DIR + scoreboard.fname);
+	std::ofstream file(SCOREBOARDS_DIR + scoreboard.fname);
 	if (file.is_open()) {
 		file << scoreboard.data;
 		if (file.fail()) {

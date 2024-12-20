@@ -1,9 +1,0 @@
-# Executables
-/GS
-/client
-
-# Object files
-*.o
-
-# IDE auxiliary stuff
-.vscode/*

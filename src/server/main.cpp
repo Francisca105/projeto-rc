@@ -1,75 +1,75 @@
-#include "../common/common.hpp"
+#include "main.hpp"
+
+#include <signal.h>
+
+#include <cstring>
+#include <iostream>
+
+#include "config.hpp"
 #include "server.hpp"
 
-int main(int argc, char** argv) {
-	std::string port_number = GSPORT;
-	bool verbose = false;
+volatile sig_atomic_t KeepRunning = true;
 
-	if (argc > 1) {
-		bool error = false;
-		switch (argc) {
-			case 2:
-				error = std::string("-v").compare(argv[1]) ? true : false;
-				if (!error) verbose = true;
+int main(int argc, char **argv) {
+	Config config;
+	initConfig(&config, argc, argv);
+
+	struct sigaction act;
+	std::memset(&act, 0, sizeof(act));
+	act.sa_handler = sigintHandler;
+	if (sigaction(SIGINT, &act, NULL) == -1) {
+		std::cerr
+				<< "[LOG] Error changing SIGINT"
+				<< std::endl;
+		std::perror("[DEBUG] sigaction");
+	}
+
+	std::memset(&act, 0, sizeof(act));
+	act.sa_handler = SIG_IGN;
+	if (sigaction(SIGPIPE, &act, NULL) == -1) {
+		std::cerr
+				<< "[LOG] Error changing SIGPIPE"	<< std::endl;
+		std::perror("[DEBUG] sigaction");
+	}
+
+	fd_set set, loop;
+	FD_ZERO(&set);
+	FD_SET(config.udp_fd, &set);
+	FD_SET(config.tcp_fd, &set);
+	struct timeval timeout;
+	int ready;
+
+	while (KeepRunning) {
+		loop = set;
+		std::memset(&timeout, 0, sizeof(timeout));
+		timeout.tv_sec = SERVER_TIMEOUT;
+
+		ready = select(FD_SETSIZE, &loop, NULL, NULL, &timeout);
+		switch (ready) {
+			case 0:
+				std::cout << "Server is running" << std::endl;
 				break;
-			case 3:
-				error = std::string("-p").compare(argv[1]) ? true : false;
-				if (!error) {
-					try {
-						int n = std::stoi(argv[2]);
-						if ((n < 0) or (0 < n and n < 1024) or (n > 65535)) {
-							std::cerr
-									<< "Port number out of valid range ~(0 + 1024-65535).\n";
-							error = true;
-						}
-					} catch (std::invalid_argument const& ex) {
-						std::cerr
-								<< "Error converting port number to valid number (integer).\n";
-						error = true;
-					} catch (std::out_of_range const& ex) {
-						std::cerr << "Port number out of valid range ~(0 + 1024-65535).\n";
-						error = true;
-					}
-					if (!error) port_number = argv[2];
-				}
-				break;
-			case 4:
-				error = std::string("-p").compare(argv[1]) ? true : false;
-				if (!error) {
-					try {
-						int n = std::stoi(argv[2]);
-						if ((n < 0) or (0 < n and n < 1024) or (n > 65535)) {
-							std::cerr
-									<< "Port number out of valid range ~(0 + 1024-65535).\n";
-							error = true;
-						}
-					} catch (std::invalid_argument const& ex) {
-						std::cerr
-								<< "Error converting port number to valid number (integer).\n";
-						error = true;
-					} catch (std::out_of_range const& ex) {
-						std::cerr << "Port number out of valid range ~(0 + 1024-65535).\n";
-						error = true;
-					}
-					if (!error) port_number = argv[2];
-				}
-				if (!error) {
-					error = std::string("-v").compare(argv[3]) ? true : false;
-					if (!error) verbose = true;
-				}
+			case -1:
+				if (errno != EINTR) std::perror("[DEBUG] select");	// DEBUG
 				break;
 			default:
-				error = true;
-		}
-		if (error) {
-			std::cerr << "usage: ./GS [-p GSport] [-v]\n";
-			exit(1);
+				if (FD_ISSET(config.udp_fd, &loop)) {
+					handleUdp(config);
+				}
+				if (FD_ISSET(config.tcp_fd, &loop)) {
+					// handleTcp();
+				}
+				break;
 		}
 	}
-	if (verbose) std::cout << "The server is running on verbose mode.\n";
 
-	if (runServer(port_number, verbose) == 0)
-		std::cout << "\nServer closed successfuly.\n";
+	std::cout << "Closing down the server..." << std::endl;
 
 	return 0;
+}
+
+void sigintHandler(int signal) {
+	(void)(signal);
+	if (!KeepRunning) exit(EXIT_FAILURE);
+	KeepRunning = false;
 }

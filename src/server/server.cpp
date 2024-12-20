@@ -1,269 +1,245 @@
 #include "server.hpp"
 
-#include <fcntl.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <time.h>
 
-#include <csignal>
-#include <cstdlib>
-#include <cstring>
 #include <iostream>
 
+#include "config.hpp"
 #include "game.hpp"
-#include "parser.hpp"
+#include "protocol.hpp"
 
-struct client {
-	std::string host;
-	std::string port;
-};
+void handleUdp(Config config) {
+	Address addr;
+	std::string request(MAX_REQUEST_LEN, '\0');
 
-struct parameters {
-	std::string plid;
-	int time = -1;
-	std::string code;
-	int nt = 0;
-};
+	if (!receiveUdp(request, config.udp_fd, &addr)) return;
 
-volatile std::sig_atomic_t keepRunning = true;
-
-void sigintHandler(int signal) {
-	if (signal == SIGINT) keepRunning = false;
-}
-
-int runServer(std::string port_number, bool verbose) {
-	if (std::signal(SIGINT, sigintHandler) == SIG_ERR)
-		std::cerr << "Failed changing how SIGINT is handled.\n";
-
-	int udp_fd = socketInnit(port_number, UDP);
-	int tcp_fd = socketInnit(port_number, TCP);
-
-	if (verbose)
-		std::cout << "The server is running on port " << port_number << ".\n";
-
-	std::string udp_buf, tcp_buf;
-
-	fd_set fds, fds_loop;
-	struct timeval timeout;
-	FD_ZERO(&fds);
-	FD_SET(udp_fd, &fds);
-	FD_SET(tcp_fd, &fds);
-
-	Client client;
-	Parameters parameters;
-
-	int n;
-	Command cmd;
-
-	std::unordered_map<std::string, Player> players;
-
-	while (keepRunning) {
-		fds_loop = fds;
-		memset(&timeout, 0, sizeof(struct timeval));
-		timeout.tv_sec = 10;
-
-		client.host = std::string(NI_MAXHOST, '\0');
-		client.port = std::string(NI_MAXSERV, '\0');
-
-		parameters.plid = std::string(PLID_LEN, '\0');
-		parameters.time = -1;
-		parameters.code = std::string(7, '\0');
-		parameters.nt = 0;
-
-		switch (select(FD_SETSIZE, &fds_loop, NULL, NULL, &timeout)) {
-			case 0:
-				std::cout << "Server is still running." << std::endl;
-
-				break;
-			case -1:
-				if (errno != EINTR) errorErrno("select");
-				break;
-			default:
-				if (FD_ISSET(udp_fd, &fds_loop)) {
-					udp_buf.replace(0, UDP_SIZE, UDP_SIZE, '\0');
-					n = readUdp(udp_fd, udp_buf.data(), client.host.data(),
-											client.port.data());
-					cmd = getCmd(udp_buf, n);
-					if (cmd == CMD_ERR) {
-						// send ERR to client
-						if (verbose == true)
-							printVerbose(false, parameters.plid, cmd, client);
-						break;
-					}
-					parseAndRun(cmd, udp_buf, n, client, &parameters, verbose, players);
-				}
-				if (FD_ISSET(tcp_fd, &fds_loop)) {
-					accept(tcp_fd, NULL, NULL);
-					std::cout << "TCP client tried to connect\n";
-				}
-		}
+	Cmd cmd = getCmd(request);
+	if (cmd == Invalid) {
+		std::cout << "[LOG] Unknown command" << std::endl;
+		std::string reply = "ERR\n";
+		sendUdp(reply, config.udp_fd, addr);
+		return;
 	}
 
-	close(udp_fd);
-	close(tcp_fd);
-
-	return 0;
-}
-
-int socketInnit(std::string port_number, bool protocol) {
-	const char *tmp = port_number.c_str();
-	struct addrinfo hints, *res;
-	const int opt = 1;
-	int fd, errcode;
-	std::string s = protocol ? "UDP" : "TCP";
-	memset(&hints, 0, sizeof(hints));
-	if (protocol == UDP)
-		hints.ai_socktype = SOCK_DGRAM;
-	else
-		hints.ai_socktype = SOCK_STREAM;
-	hints.ai_family = AF_INET;
-	hints.ai_flags = AI_PASSIVE;
-	if ((errcode = getaddrinfo(NULL, tmp, &hints, &res)) != 0) errorGai(errcode);
-	if ((fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1)
-		errorErrno("socket");
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
-		errorErrno("setsockopt");
-	if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) == -1)
-		errorErrno("setsockopt");
-	if (bind(fd, res->ai_addr, res->ai_addrlen) == -1) errorErrno("bind");
-	freeaddrinfo(res);
-	if (protocol == TCP) {
-		int flags;
-		if (listen(fd, MAX_CONNECTIONS) == -1) errorErrno("listen");
-		if ((flags = fcntl(fd, F_GETFL, 0)) == -1) errorErrno("fcntl");
-		if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) errorErrno("fcntl");
+	Args args;
+	if (!parseCmd(request, cmd, &args)) {
+		std::cout << "[LOG] Error parsing " << cmdAsStr(cmd) << std::endl;
+		return;
 	}
-	std::cout << s << " socket set.\n";
-	return fd;
+
+	runCmd(cmd, args, config, addr);
 }
 
-int readUdp(int fd, char *buf, char *host, char *port) {
-	struct sockaddr addr;
-	socklen_t addrlen = sizeof(addr);
-	ssize_t n = recvfrom(fd, buf, UDP_SIZE, 0, &addr, &addrlen);
-	if (n == -1) errorErrno("recvfrom");
-	if (getnameinfo(&addr, addrlen, host, NI_MAXHOST, port, NI_MAXSERV, 0) != 0)
-		errorErrno("getnameinfo");
-	return (int)n;
-}
-
-void parseAndRun(Command cmd, std::string buf, int len, Client client,
-								 Parameters *params, bool verbose,
-								 std::unordered_map<std::string, Player> &players) {
-	bool parsing;
-	buf.erase(0, CMD_LEN);
-	len -= CMD_LEN;
-
+void runCmd(Cmd cmd, Args args, Config config, Address addr) {
 	switch (cmd) {
-		case CMD_SNG:
-			parsing = parseSng(buf, len, params->plid, &params->time);
-			if (parsing == false) {
-				// reply("ERR")
-			} else {
-				run_rsg(params, players);
-				// status = run_sng()
-				// reply(status)
-			}
+		case Start:
+			runStart(args, config, addr);
+			if (config.verbose) printVerbose(args.plid, "SNG", addr);
 			break;
-		case CMD_TRY:
-			parsing = parseTry(buf, len, params->plid, params->code, &params->nt);
-			if (parsing == false) {
-				// reply("ERR")
-			} else {
-				run_try(params, players);
-			}
+		case Try:
+			runTry(args, config, addr);
+			if (config.verbose) printVerbose(args.plid, "TRY", addr);
 			break;
-		case CMD_QUT:
-			parsing = parseQut(buf, len, params->plid);
-			if (parsing == false) {
-				// reply("ERR")
-			} else {
-				// status = run_qut()
-				// reply(status)
-			}
+		case Debug:
+			runDebug(args, config, addr);
+			if (config.verbose) printVerbose(args.plid, "DBG", addr);
 			break;
-		case CMD_DBG:
-			parsing = parseDbg(buf, len, params->plid, &params->time, params->code);
-			if (parsing == false) {
-				// reply("ERR")
-			} else {
-				// status = run_dbg()
-				// reply(status)
-			}
+		case Quit:
+			runQuit(args, config, addr);
+			if (config.verbose) printVerbose(args.plid, "DBG", addr);
 			break;
-		case CMD_STR:
-		case CMD_SSB:
-		case CMD_ERR:
+		case Showtrials:
+			// runShowTrials(args, config, addr);
+			if (config.verbose) printVerbose(args.plid, "DBG", addr);
 			break;
+		case Scoreboard:
+			// runScoreboard(args, config, addr);
+			if (config.verbose) printVerbose(args.plid, "DBG", addr);
+			break;
+		case Invalid:
 		default:
-			break;
+			return;
 	}
-	if (verbose == true) printVerbose(parsing, params->plid, cmd, client);
 }
 
-void run_rsg(Parameters *params,
-						 std::unordered_map<std::string, Player> &players) {
-	std::string plid = params->plid;
-	if (auto it = players.find(plid); it != players.end()) {
-		// Player found
-		if (it->second.getGame() == false) {
-			it->second.startGame(params->time);
-			std::cout << "Started new game\n";
-		} else {
-			std::cout << "Game in progress\n";
-		}
+void runStart(Args args, Config config, Address addr) {
+	std::string dummy;
+	checkTimeout(args.plid, dummy);
+
+	if (hasActiveGame(args.plid)) {
+		std::cout << "[LOG] " << args.plid << " - Game already in progress" << std::endl;
+		std::string reply("RSG NOK\n");
+		sendUdp(reply, config.udp_fd, addr);
+		return;
+	}
+
+	std::string code(CODE_SIZE, '\0');
+	if (!startGame(args.plid, args.time, code)) {
+		std::cout << "[LOG] " << args.plid << " - Error starting game" << std::endl;
+		std::string reply("RSG ERR\n");
+		sendUdp(reply, config.udp_fd, addr);
+		return;
+	}
+
+	std::cout << "[LOG] " << args.plid << " - Started new game (max " << args.time << " s) (code " << code << ") (normal)" << std::endl;
+	std::string reply("RSG OK\n");
+	sendUdp(reply, config.udp_fd, addr);
+}
+
+void runTry(Args args, Config config, Address addr) {
+	std::string code;
+	if (checkTimeout(args.plid, code)) {
+		// std::cout << "[LOG] " << args.plid << " - " << std::endl;
+		std::string reply(sizeof("RTR ETM C C C C\n") - 1, '\0');
+		sprintf(reply.data(), "RTR ETM %s\n", code.c_str());
+		sendUdp(reply, config.udp_fd, addr);
+		return;
+	}
+
+	if (hasActiveGame(args.plid)) {
+		std::string reply;
+		std::string tmp = getKey(args.plid), key(sizeof("C C C C") - 1, ' ');
+		sprintf(key.data(), "%c %c %c %c", tmp[0], tmp[1], tmp[2], tmp[3]);
+		int nB, nW;
+		args.code.erase(1, 1).erase(2, 1).erase(3, 1).erase(4, 1);
+		switch (checkTry(args.plid, args.code, args.nT)) {
+			case OK:
+				aOk(args.code, key, &nB, &nW);
+				if (nB == CODE_SIZE) {
+					reply.resize(sizeof("RTR OK t 4 0\n") - 1, '\0');
+					sprintf(reply.data(), "RTR OK %d 4 0\n", args.nT);
+					std::cout<<reply;
+					registerTry(args.plid, args.code, nB, nW);
+					winGame(args.plid, args.code, (char)(args.nT + '0'));
+				} else {
+					reply.resize(sizeof("RTR OK t b w\n") - 1, '\0');
+					sprintf(reply.data(), "RTR OK %d %d %d\n", args.nT, nB, nW);
+					registerTry(args.plid, args.code, nB, nW);
+				}
+				sendUdp(reply, config.udp_fd, addr);
+				return;
+			case Ok:
+				reply.resize(sizeof("RTR OK t b w\n") - 1, '\0');
+				sprintf(reply.data(), "RTR OK %d %d %d\n", args.nT, nB, nW);
+				return;
+			case DUP:
+				reply = "RTR DUP\n";
+				sendUdp(reply, config.udp_fd, addr);
+				return;
+			case INV:
+				reply = "RTR INV\n";
+				sendUdp(reply, config.udp_fd, addr);
+				return;
+			case ENT:
+				reply.resize(sizeof("RTR ENT C C C C\n") - 1, '\0');
+				sprintf(reply.data(), "RTR ENT %s\n", key.c_str());
+				registerTry(args.plid, args.code, nB, nW);
+				failGame(args.plid);
+				sendUdp(reply, config.udp_fd, addr);
+				return;
+			default:
+				break;
+		};
+
 	} else {
-		std::cout << "No player found\n";
-		Player player(plid);
-		player.startGame(params->time);
-		players.insert({plid, player});
-		std::cout << "Started new game\n";
+		std::cout << "[LOG] " << args.plid << " - No active game" << std::endl;
+		std::string reply("RTR NOK\n");
+		sendUdp(reply, config.udp_fd, addr);
+		return;
 	}
+
 }
 
-void run_try(Parameters *params,
-						 std::unordered_map<std::string, Player> &players) {
-	std::string plid = params->plid;
-	if (auto it = players.find(plid); it != players.end()) {
-		if (it->second.getGame() == true) {
-			// GameUtils::checkGuess(); TODO: check guess
-			// std::cout << "--------------------------\nCODE:\n"
-			// 					<< params->code << "\n\n";
-		} else {
-			// std::cout << "This player has no game in progress\n";
-		}
+void runDebug(Args args, Config config, Address addr) {
+	std::string dummy;
+	checkTimeout(args.plid, dummy);
+
+	if (hasActiveGame(args.plid)) {
+		std::cout << "[LOG] " << args.plid << " - Game already in progress" << std::endl;
+		std::string reply("RDB NOK\n");
+		sendUdp(reply, config.udp_fd, addr);
+		return;
+	}
+
+	if (!startGame(args.plid, args.time, args.code.erase(1,1).erase(2,1).erase(3,1).erase(4,1))) {
+		std::cout << "[LOG] " << args.plid << " - Error starting game" << std::endl;
+		std::string reply("RDB ERR\n");
+		sendUdp(reply, config.udp_fd, addr);
+		return;
+	}
+
+	std::cout << "[LOG] " << args.plid << " - Started new game (max " << args.time << " s) (code " << args.code << ") (debug)" << std::endl;
+	std::string reply("RDB OK\n");
+	sendUdp(reply, config.udp_fd, addr);
+}
+
+void runQuit(Args args, Config config, Address addr) {
+	std::string dummy;
+	checkTimeout(args.plid, dummy);
+
+	if (hasActiveGame(args.plid)) {
+		// std::cout << "[LOG] " << args.plid << " - Game already in progress" << std::endl;
+		std::string key(sizeof("C C C C") - 1, '\0');
+		quitGame(args.plid, key);
+		std::string reply(sizeof("RQT OK C C C C\n") - 1, '\0');
+		sprintf(reply.data(), "RQT OK %s\n", key.c_str());
+		sendUdp(reply, config.udp_fd, addr);
+		return;
 	} else {
-		// std::cout << "No player found\n";
+		std::string reply("RQT NOK\n");
+		sendUdp(reply, config.udp_fd, addr);
 	}
 }
 
-// FIXME: corrigir cmd valid mas plid invalid
-void printVerbose(bool parsing, std::string plid, Command cmd, Client client) {
-	std::cout << "Received request:\n";
-	if (parsing == false) {
-		if (cmd == CMD_ERR) {
-			std::cout << "\tError parsing the request;\n";
-		} else {
-			std::cout << "\tCommand - " << getCmdName(cmd) << ";\n";
-			if (plid.at(0) != 0)
-				std::cout << "\tPLID - " << plid << ";\n";
-			else
-				std::cout << "\tPLID - Error parsing the PLID;\n";
-		}
-	} else {
-		std::cout << "\tCommand - " << getCmdName(cmd) << ";\n"
-							<< "\tPLID - " << plid << ";\n";
+void printVerbose(std::string plid, std::string request, Address addr) {
+	char ip[NI_MAXHOST], port[NI_MAXSERV];
+	int errcode = getnameinfo((struct sockaddr *)&(addr.addr), addr.addrlen, ip,
+														sizeof(ip), port, sizeof(port), 0);
+	if (errcode != 0) {
+		std::cerr << "[DEBUG] Error getting player info" << std::endl;
 	}
-	std::cout << "\tHost - " << client.host << ";\n"
-						<< "\tPort - " << client.port << ".\n";
+	std::cout << "Verbose:\n  PLID - " << plid << "\n  Request - " << request
+						<< "\n  Player IP - " << ip << "\n  Player port - " << port
+						<< std::endl;
 }
 
-void errorErrno(const char *func) {
-	perror(func);
-	exit(1);
+void handleTcp(Config config) {
+	Address addr;
+	int fd = accept(config.tcp_fd, &addr.addr, &addr.addrlen);
+
+	std::string request(sizeof("STR PPPPPP\n") - 1, '\0');
+	if (!receiveTcp(request, fd)) return;
+
+	Cmd cmd = getCmd(request);
+	if (cmd == Invalid) {
+		std::cout << "[LOG] Unknown command" << std::endl;
+		std::string reply = "ERR\n";
+		// sendTcp(reply, config.udp_fd, addr);
+		return;
+	}
+
+	Args args;
+	if (!parseCmd(request, cmd, &args)) {
+		std::cout << "[LOG] Error parsing " << cmdAsStr(cmd) << std::endl;
+		return;
+	}
+
+	config.tcp_fd = fd;
+
+	runCmd(cmd, args, config, addr);
 }
 
-void errorGai(int errcode) {
-	std::cerr << "getaddrinfo: " << gai_strerror(errcode) << "\n";
-	exit(1);
-}
+// void runShowTrials(Args args, Config config, Address addr) {
+// 	std::string dummy;
+// 	checkTimeout(args.plid, dummy);
+
+// 	if (hasActiveGame(args.plid)) {
+// 		sendActiveGame();
+// 	} else if hasFinishedGame(args.plid) {
+// 		sendLastGame();
+// 	} else {
+// 		std::string reply("RST NOK\n");
+// 		sendTcp(reply, )
+// 	}
+// }
