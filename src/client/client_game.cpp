@@ -350,7 +350,7 @@ std::string createPacket(Command cmd, ClientArgs args, ClientState state,
 	} else {
 		if (send) {
 			packet.resize(sizeof("DBG PPPPPP TTT C C C C\n") - 1);
-			sprintf(packet.data(), "DBG %s %3.d %s\n", state.plid.c_str(), args.time,
+			sprintf(packet.data(), "DBG %s %3.d %s\n", args.plid.c_str(), args.time,
 							args.code.c_str());
 		} else
 			packet.resize(sizeof("RDB SSS\n") - 1);
