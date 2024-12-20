@@ -2,6 +2,10 @@
 /GS
 /client
 
+# Logs
+games/*
+scores/
+
 # Object files
 *.o
 
