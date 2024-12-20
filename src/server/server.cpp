@@ -10,6 +10,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "aux.hpp"
 #include "game.hpp"
 #include "parser.hpp"
 
@@ -195,7 +196,7 @@ std::string parseAndRun(Command cmd, std::string buf, int len, Client client,
 			if (parsing == false) {
 				msg = "ERR";
 			} else {
-				run_try(params, players);
+				msg = run_try(params, players);
 			}
 			break;
 		case CMD_QUT:
@@ -240,6 +241,9 @@ std::string run_rsg(Parameters *params,
 		// Player found
 		if (it->second.getGame() == false) {
 			it->second.startGame(params->time);
+			GameFile::saveGameStart(params->plid, 'P',
+															GameUtils::colorsToString(it->second.getCode()),
+															params->time);
 			msg = "OK";
 			std::cout << "Started new game\n";
 		} else {
@@ -250,6 +254,9 @@ std::string run_rsg(Parameters *params,
 		std::cout << "No player found\n";
 		Player player(plid);
 		player.startGame(params->time);
+		GameFile::saveGameStart(params->plid, 'P',
+														GameUtils::colorsToString(player.getCode()),
+														params->time);
 		players.insert({plid, player});
 		msg = "OK";
 		std::cout << "Started new game\n";
@@ -272,6 +279,9 @@ std::string run_dbg(Parameters *params,
 		// Player found
 		if (it->second.getGame() == false) {
 			it->second.startGame(params->time, code);
+			GameFile::saveGameStart(params->plid, 'D',
+															GameUtils::colorsToString(it->second.getCode()),
+															params->time);
 			msg = "OK";
 			std::cout << "Started new game\n";
 		} else {
@@ -282,6 +292,9 @@ std::string run_dbg(Parameters *params,
 		std::cout << "No player found\n";
 		Player player(plid);
 		player.startGame(params->time, code);
+		GameFile::saveGameStart(params->plid, 'D',
+														GameUtils::colorsToString(player.getCode()),
+														params->time);
 		players.insert({plid, player});
 		msg = "OK";
 		std::cout << "Started new game\n";
@@ -316,20 +329,62 @@ std::string run_qut(Parameters *params,
 	return msg;
 }
 
-void run_try(Parameters *params,
-						 std::unordered_map<std::string, Player> &players) {
+std::string run_try(Parameters *params,
+										std::unordered_map<std::string, Player> &players) {
 	std::string plid = params->plid;
+	std::string msg = "";
+
 	if (auto it = players.find(plid); it != players.end()) {
 		if (it->second.getGame() == true) {
-			// GameUtils::checkGuess(); TODO: check guess
-			// std::cout << "--------------------------\nCODE:\n"
-			// 					<< params->code << "\n\n";
+			std::cout << "--------------------------\nCODE:\n"
+								<< params->code << "\n\n";
+
+			if (GameFile::checkTrial(plid, params->code)) {
+				msg = "DUP";
+			}
+
+			if (params->nt != (it->second.getTrials() + 1)) {
+				msg = "INV";	// Invalid number of trials
+			}
+
+			if (GameUtils::isTrialsExceeded(params->nt)) {
+				msg = "ENV";
+				msg += " " + GameUtils::colorsToStringWithSpaces(it->second.getCode());
+
+				it->second.endGame();
+			}
+
+			if (GameFile::checkTimeExceeded(plid)) {
+				// Time exceeded - end game with timeout
+				GameFile::finishGame(plid, 'T');
+				it->second.endGame();
+				return "ETM";
+			}
+
+			TrialResult this_try =
+					GameUtils::checkGuess(params->code, it->second.getCode());
+			GameFile::saveGameTrial(plid, params->code,
+															this_try.correctColorAndPosition,
+															this_try.correctColor);
+
+			msg = "OK " + std::to_string(params->nt) + " " +
+						std::to_string(this_try.correctColorAndPosition) + " " +
+						std::to_string(this_try.correctColor);
+
+			it->second.incrementTrials();
+
+			if (this_try.correctColorAndPosition == NUM_COLORS) {	 // Win
+				GameFile::finishGame(plid, 'W');
+				it->second.endGame();
+			}
+
 		} else {
-			// std::cout << "This player has no game in progress\n";
+			msg = "NOK";
 		}
 	} else {
-		// std::cout << "No player found\n";
+		msg = "NOK";
 	}
+	return msg;
 }
 
 // FIXME: corrigir cmd valid mas plid invalid

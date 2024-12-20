@@ -33,8 +33,8 @@ std::string run_dbg(Parameters *params,
 std::string run_qut(Parameters *params,
 										std::unordered_map<std::string, Player> &players);
 
-void run_try(Parameters *params,
-						 std::unordered_map<std::string, Player> &players);
+std::string run_try(Parameters *params,
+										std::unordered_map<std::string, Player> &players);
 
 void printVerbose(bool parsing, std::string plid, Command cmd, Client client);
 

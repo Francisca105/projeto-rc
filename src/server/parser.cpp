@@ -42,6 +42,7 @@ bool parseTry(std::string buf, int len, std::string &plid, std::string &code,
 	if (parsePlid(tmp, &len, plid) == false) return false;
 	if (parseSpace(tmp, &len) == false) return false;
 	if (parseCode(tmp, &len, code) == false) return false;
+	if (parseSpace(tmp, &len) == false) return false;
 	if (parseNt(tmp, &len, nt) == false) return false;
 	if (parseNewline(tmp, &len) == false) return false;
 	return true;

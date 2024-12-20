@@ -173,4 +173,8 @@ TrialResult checkGuess(std::vector<Color> secret, std::vector<Color> guess) {
 	return result;
 }
 
+TrialResult checkGuess(std::string secret, std::vector<Color> guess) {
+	return checkGuess(charsToColors(secret[0], secret[2], secret[4], secret[6]),
+										guess);
+}
 }	 // namespace GameUtils

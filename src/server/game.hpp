@@ -55,6 +55,7 @@ std::string colorsToStringWithSpaces(std::vector<Color> colors);
 std::vector<Color> generateCode();
 
 TrialResult checkGuess(std::vector<Color> secret, std::vector<Color> guess);
+TrialResult checkGuess(std::string secret, std::vector<Color> guess);
 }	 // namespace GameUtils
 
 #endif	// UTILS_H
