@@ -23,6 +23,6 @@ bool runScoreboard(ClientArgs client_args, ClientState *state);
 std::string createPacket(Command cmd, ClientArgs args, ClientState state,
 												 bool send);
 std::string createPacket(ClientState state, bool send);
-std::string createPacket(Command cmd, bool send);
+std::string createPacket(Command cmd, ClientState state, bool send);
 
 #endif

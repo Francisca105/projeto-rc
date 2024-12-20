@@ -146,8 +146,8 @@ bool runQuit(ServerArgs *server_args, ClientState *state) {
 		return true;
 	}
 
-	std::string request = createPacket(CMD_QUIT, true);
-	std::string reply = createPacket(CMD_QUIT, false);
+	std::string request = createPacket(CMD_QUIT, *state, true);
+	std::string reply = createPacket(CMD_QUIT, *state, false);
 
 	Packet packet =
 			sendUdpAndWait(state->udp_fd, request, reply, *state->server_addr);
@@ -367,12 +367,13 @@ std::string createPacket(ClientState state, bool send) {
 	return packet;
 }
 
-std::string createPacket(Command cmd, bool send) {
+std::string createPacket(Command cmd, ClientState state, bool send) {
 	std::string packet;
 	if (cmd == CMD_QUIT or cmd == CMD_EXIT) {
-		if (send)
-			packet = "QUT\n";
-		else
+		if (send) {
+			packet.resize(sizeof("QUT PPPPPP\n") - 1);
+			sprintf(packet.data(), "QUT %s\n", state.plid.c_str());
+		} else
 			packet.resize(sizeof("RQT SS C C C C\n") - 1);
 	} else {
 		if (send) packet = "SSB\n";
