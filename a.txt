@@ -1,0 +1,6 @@
+start 100000 10
+try R R R R
+try R G B P
+st
+sb
+exit

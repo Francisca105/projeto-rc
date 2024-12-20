@@ -1,6 +1,7 @@
 #include "main.hpp"
 
 #include <signal.h>
+#include <unistd.h>
 
 #include <cstring>
 #include <iostream>
@@ -18,17 +19,21 @@ int main(int argc, char **argv) {
 	std::memset(&act, 0, sizeof(act));
 	act.sa_handler = sigintHandler;
 	if (sigaction(SIGINT, &act, NULL) == -1) {
-		std::cerr
-				<< "[LOG] Error changing SIGINT"
-				<< std::endl;
+		std::cerr << "Error changing SIGINT" << std::endl;
 		std::perror("[DEBUG] sigaction");
 	}
 
 	std::memset(&act, 0, sizeof(act));
 	act.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &act, NULL) == -1) {
-		std::cerr
-				<< "[LOG] Error changing SIGPIPE"	<< std::endl;
+		std::cerr << "Error changing SIGPIPE" << std::endl;
+		std::perror("[DEBUG] sigaction");
+	}
+
+	std::memset(&act, 0, sizeof(act));
+	act.sa_handler = SIG_IGN;
+	if (sigaction(SIGCHLD, &act, NULL) == -1) {
+		std::cerr << "Error changing SIGCHLD" << std::endl;
 		std::perror("[DEBUG] sigaction");
 	}
 
@@ -57,7 +62,15 @@ int main(int argc, char **argv) {
 					handleUdp(config);
 				}
 				if (FD_ISSET(config.tcp_fd, &loop)) {
-					// handleTcp();
+					pid_t pid = fork();
+					if (pid == -1) {
+						std::cerr << "Error while forking" << std::endl;
+						std::perror("[DEBUG] fork");
+					} else if (pid > 0) {
+					} else {
+						handleTcp(config);
+						exit(EXIT_SUCCESS);
+					}
 				}
 				break;
 		}

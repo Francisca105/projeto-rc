@@ -3,9 +3,9 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <cstdlib>
 
 void initConfig(Config *config, int argc, char **argv) {
 	int opt;
@@ -52,7 +52,7 @@ bool validatePort(const char *port) {
 
 void setUdpSocket(std::string port, int *fd) {
 	if ((*fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1) {
-		std::cerr << "[LOG] Error creating UDP socket" << std::endl;
+		std::cerr << "Error creating UDP socket" << std::endl;
 		std::perror("[DEBUG] socket");
 		std::cout << "Closing down the server..." << std::endl;
 		exit(EXIT_FAILURE);
@@ -66,14 +66,14 @@ void setUdpSocket(std::string port, int *fd) {
 
 	int errcode = getaddrinfo(NULL, port.c_str(), &hints, &res);
 	if (errcode != 0) {
-		std::cerr << "[LOG] Error getting server address" << std::endl;
+		std::cerr << "Error getting server address" << std::endl;
 		std::cerr << "[DEBUG] getaddrinfo: " << gai_strerror(errcode) << std::endl;
 		std::cout << "Closing down the server..." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	if (bind(*fd, res->ai_addr, res->ai_addrlen) == -1) {
-		std::cerr << "[LOG] Error binding UDP socket" << std::endl;
+		std::cerr << "Error binding UDP socket" << std::endl;
 		std::perror("[DEBUG] bind");
 		std::cout << "Closing down the server..." << std::endl;
 		exit(EXIT_FAILURE);
@@ -82,11 +82,18 @@ void setUdpSocket(std::string port, int *fd) {
 
 void setTcpSocket(std::string port, int *fd) {
 	if ((*fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-		std::cerr << "[LOG] Error creating TCP socket" << std::endl;
+		std::cerr << "Error creating TCP socket" << std::endl;
 		std::perror("[DEBUG] socket");
 		std::cout << "Closing down the server..." << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+	const int enable = 1;
+	if (setsockopt(*fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+		std::cerr << "setsockopt(SO_REUSEADDR) failed";
+
+	if (setsockopt(*fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
+		std::cerr << "setsockopt(SO_REUSEADDR) failed";
 
 	struct addrinfo hints, *res;
 	std::memset(&hints, 0, sizeof(hints));
@@ -96,21 +103,21 @@ void setTcpSocket(std::string port, int *fd) {
 
 	int errcode = getaddrinfo(NULL, port.c_str(), &hints, &res);
 	if (errcode != 0) {
-		std::cerr << "[LOG] Error getting server address" << std::endl;
+		std::cerr << "Error getting server address" << std::endl;
 		std::cerr << "[DEBUG] getaddrinfo: " << gai_strerror(errcode) << std::endl;
 		std::cout << "Closing down the server..." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	if (bind(*fd, res->ai_addr, res->ai_addrlen) == -1) {
-		std::cerr << "[LOG] Error binding TCP socket" << std::endl;
+		std::cerr << "Error binding TCP socket" << std::endl;
 		std::perror("[DEBUG] bind");
 		std::cout << "Closing down the server..." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 
 	if (listen(*fd, MAX_TCP_CONNECTIONS) == -1) {
-		std::cerr << "[LOG] Error listening TCP socket" << std::endl;
+		std::cerr << "Error listening TCP socket" << std::endl;
 		std::perror("[DEBUG] listen");
 		std::cout << "Closing down the server..." << std::endl;
 		exit(EXIT_FAILURE);

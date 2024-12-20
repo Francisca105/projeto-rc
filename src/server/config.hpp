@@ -14,6 +14,7 @@ typedef struct {
 	bool verbose = false;
 	int udp_fd;
 	int tcp_fd;
+	int scoreboard = 1;
 } Config;
 
 void initConfig(Config *config, int argc, char **argv);

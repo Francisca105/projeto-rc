@@ -1,7 +1,8 @@
 #include "protocol.hpp"
 
-#include <cstring>
 #include <unistd.h>
+
+#include <cstring>
 #include <iostream>
 
 bool sendUdp(std::string packet, int fd, struct addrinfo addr) {

@@ -10,15 +10,6 @@
 
 #define MAX_REQUEST_LEN 24
 
-typedef struct {
-	int time_limit;
-
-	std::string plid;
-} ActiveGame;
-
-typedef struct {
-} FinishedGame;
-
 // extern volatile __sig_atomic_t KeepRunning;
 
 #endif

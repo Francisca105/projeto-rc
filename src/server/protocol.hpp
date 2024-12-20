@@ -15,5 +15,6 @@ bool receiveUdp(std::string &packet, int fd, Address *addr);
 bool sendUdp(std::string packet, int fd, Address addr);
 bool receiveTcp(std::string &packet, int fd);
 bool readString(std::string &buf, int fd, size_t size);
+bool sendTcp(std::string packet, int fd);
 
 #endif

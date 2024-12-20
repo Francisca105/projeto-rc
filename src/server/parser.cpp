@@ -79,7 +79,8 @@ bool parseTRY(std::string buf, std::string &plid, std::string &code, int *nT) {
 	return true;
 }
 
-bool parseDBG(std::string buf, std::string &plid, int *time, std::string &code) {
+bool parseDBG(std::string buf, std::string &plid, int *time,
+							std::string &code) {
 	if (!parseSpace(buf)) return false;
 	if (!parsePlid(buf, plid)) return false;
 	if (!parseSpace(buf)) return false;

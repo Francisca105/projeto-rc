@@ -15,5 +15,8 @@ void runTry(Args args, Config config, Address addr);
 void runDebug(Args args, Config config, Address addr);
 void runQuit(Args args, Config config, Address addr);
 void printVerbose(std::string plid, std::string request, Address addr);
+void runShowTrials(Args args, Config config);
+void runScoreboard(Config config);
+void handleTcp(Config config);
 
 #endif

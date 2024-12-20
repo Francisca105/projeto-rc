@@ -3,14 +3,14 @@
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #include <iostream>
 
 bool receiveUdp(std::string &packet, int fd, Address *addr) {
 	ssize_t rcvd;
 	if ((rcvd = recvfrom(fd, packet.data(), packet.size(), 0, &addr->addr,
 											 &addr->addrlen)) == -1) {
-		std::cerr << "[DEBUG] Error receiving TCP packet"
-							<< std::endl;
+		std::cerr << "Error receiving TCP packet" << std::endl;
 		std::perror("[DEBUG] recvfrom");	// DEBUG
 		return false;
 	}
@@ -21,7 +21,7 @@ bool receiveUdp(std::string &packet, int fd, Address *addr) {
 bool sendUdp(std::string packet, int fd, Address addr) {
 	if (sendto(fd, packet.data(), packet.size(), 0, &addr.addr, addr.addrlen) ==
 			-1) {
-		std::cerr << "[DEBUG] Error sending UDP packet" << std::endl;
+		std::cerr << "Error sending UDP packet" << std::endl;
 		std::perror("[DEBUG] sendto");	// DEBUG
 		return false;
 	}
@@ -39,19 +39,36 @@ bool receiveTcp(std::string &packet, int fd) {
 }
 
 bool readString(std::string &buf, int fd, size_t size) {
-	ssize_t nwritten;
+	ssize_t nread;
 	std::string data(size, 0);
 	char *ptr = data.data();
 	while (size > 0) {
-		nwritten = read(fd, ptr, size);
-		if (nwritten == -1) {
+		nread = read(fd, ptr, size);
+		if (nread == -1) {
 			std::cerr << "Failed to receive the reply from the server" << std::endl;
+			std::perror("[DEBUG] write");	 // DEBUG
+			return false;
+		}
+		size -= (size_t)nread;
+		ptr += nread;
+	}
+	buf += data;
+	return true;
+}
+
+bool sendTcp(std::string packet, int fd) {
+	size_t size = packet.size();
+	ssize_t nwritten;
+	char *ptr = packet.data();
+	while (size > 0) {
+		nwritten = write(fd, ptr, size);
+		if (nwritten == -1) {
+			std::cerr << "Failed to send a request to the server" << std::endl;
 			std::perror("[DEBUG] write");	 // DEBUG
 			return false;
 		}
 		size -= (size_t)nwritten;
 		ptr += nwritten;
 	}
-	buf += data;
 	return true;
 }
