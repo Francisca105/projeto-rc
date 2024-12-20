@@ -606,9 +606,11 @@ void sendActiveGame(std::string plid, int fd) {
 	time_t now;
 	time(&now);
 	int remaining = (int)((double)max_time - difftime(now, (time_t)start));
-
-	fdata.erase(0);
+	std::cout << "1:" << fdata;
+	fdata.erase(0, 1);
+	std::cout << "2:" << fdata;
 	fdata.append(std::to_string(remaining) + "\n");
+	std::cout << "3:" << fdata;
 	size_t fsize = fdata.size();
 
 	std::string packet = "RST ACT trials_" + plid + ".txt " +

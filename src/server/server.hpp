@@ -18,5 +18,7 @@ void printVerbose(std::string plid, std::string request, Address addr);
 void runShowTrials(Args args, Config config);
 void runScoreboard(Config config);
 void handleTcp(Config config);
+void printVerbose(std::string plid, std::string request, int fd);
+void printVerbose(std::string request, int fd)
 
 #endif

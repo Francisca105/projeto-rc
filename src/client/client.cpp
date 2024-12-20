@@ -89,7 +89,6 @@ bool runTry(ClArgs cl_args, SvArgs sv_args, Config config, State *state) {
 			std::cout << "Well done! You guessed the key in " << sv_args.nT
 								<< " trials" << std::endl;
 			state->playing = false;
-			// state->plid.clear(); TODO: Review if plid should be cleared or not
 		} else {
 			std::cout << "nB = " << sv_args.nB << ", nW = " << sv_args.nW
 								<< std::endl;
@@ -105,12 +104,10 @@ bool runTry(ClArgs cl_args, SvArgs sv_args, Config config, State *state) {
 		std::cout << "Oops! You ran out of tries. The secret key was: "
 							<< sv_args.code << std::endl;
 		state->playing = false;
-		// state->plid.clear(); TODO: Review if plid should be cleared or not
 	} else if (status == ETM) {
 		std::cout << "Oops! You ran out of time. The secret key was: "
 							<< sv_args.code << std::endl;
 		state->playing = false;
-		// state->plid.clear(); TODO: Review if plid should be cleared or not
 	} else {
 		std::cerr << "Message not recognized by the server" << std::endl;
 	}
@@ -139,11 +136,9 @@ bool runQuit(SvArgs sv_args, Config config, State *state) {
 		std::cout << "Game ended. The secret key was: " << sv_args.code
 							<< std::endl;
 		state->playing = false;
-		// state->plid.clear(); TODO: Review if plid should be cleared or not
 	} else if (status == NOK) {
 		std::cout << "There was not a game in progress" << std::endl;
 		state->playing = false;
-		// state->plid.clear(); TODO: Review if plid should be cleared or not
 	} else {
 		std::cerr << "Message not recognized by the server" << std::endl;
 	}
@@ -184,11 +179,6 @@ bool runDebug(ClArgs cl_args, SvArgs sv_args, Config config, State *state) {
 }
 
 bool runShowTrials(SvArgs sv_args, Config config, State *state) {
-	if (!state->playing) {
-		std::cout << "There is no active game" << std::endl;
-		return true;
-	}
-
 	std::string request = createRequest(Showtrials, *state);
 	std::string reply;
 	if (!sendTcpAndReceive(request, reply, config.ip, config.port)) return true;
@@ -206,11 +196,9 @@ bool runShowTrials(SvArgs sv_args, Config config, State *state) {
 		saveTrials(sv_args.trials);
 		std::cout << "received trials file:\n" << sv_args.trials.data;
 		state->playing = false;
-		// state->plid.clear(); TODO: Review if plid should be cleared or not
 	} else {
 		std::cout << "No file received" << std::endl;
 		state->playing = false;
-		// state->plid.clear(); TODO: Review if plid should be cleared or not
 	}
 
 	return true;
