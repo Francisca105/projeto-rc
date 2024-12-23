@@ -1,7 +1,19 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "config.hpp"
+#include "parser.hpp"
 #include "support.hpp"
+
+#define TRIALS_DIR "./client/trials/"
+#define SCOREBOARDS_DIR "./client/scoreboards/"
+
+// Client state
+typedef struct {
+	bool playing = false;
+	std::string plid;
+	int nT = 0;
+} State;
 
 bool runCmd(Cmd cmd, ClArgs cl_args, SvArgs sv_args, Config config,
 						State *state);

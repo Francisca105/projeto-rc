@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "config.hpp"
 #include "parser.hpp"
 #include "protocol.hpp"
 
@@ -87,6 +88,7 @@ bool runTry(ClArgs cl_args, SvArgs sv_args, Config config, State *state) {
 		if (sv_args.nB == 4) {
 			std::cout << "Well done! You guessed the key in " << sv_args.nT
 								<< " trials" << std::endl;
+			state->playing = false;
 		} else {
 			std::cout << "nB = " << sv_args.nB << ", nW = " << sv_args.nW
 								<< std::endl;
@@ -102,12 +104,10 @@ bool runTry(ClArgs cl_args, SvArgs sv_args, Config config, State *state) {
 		std::cout << "Oops! You ran out of tries. The secret key was: "
 							<< sv_args.code << std::endl;
 		state->playing = false;
-		state->plid.clear();
 	} else if (status == ETM) {
 		std::cout << "Oops! You ran out of time. The secret key was: "
 							<< sv_args.code << std::endl;
 		state->playing = false;
-		state->plid.clear();
 	} else {
 		std::cerr << "Message not recognized by the server" << std::endl;
 	}
@@ -136,11 +136,9 @@ bool runQuit(SvArgs sv_args, Config config, State *state) {
 		std::cout << "Game ended. The secret key was: " << sv_args.code
 							<< std::endl;
 		state->playing = false;
-		state->plid.clear();
 	} else if (status == NOK) {
 		std::cout << "There was not a game in progress" << std::endl;
 		state->playing = false;
-		state->plid.clear();
 	} else {
 		std::cerr << "Message not recognized by the server" << std::endl;
 	}
@@ -181,11 +179,6 @@ bool runDebug(ClArgs cl_args, SvArgs sv_args, Config config, State *state) {
 }
 
 bool runShowTrials(SvArgs sv_args, Config config, State *state) {
-	if (!state->playing) {
-		std::cout << "There is no active game" << std::endl;
-		return true;
-	}
-
 	std::string request = createRequest(Showtrials, *state);
 	std::string reply;
 	if (!sendTcpAndReceive(request, reply, config.ip, config.port)) return true;
@@ -203,11 +196,9 @@ bool runShowTrials(SvArgs sv_args, Config config, State *state) {
 		saveTrials(sv_args.trials);
 		std::cout << "received trials file:\n" << sv_args.trials.data;
 		state->playing = false;
-		state->plid.clear();
 	} else {
 		std::cout << "No file received" << std::endl;
 		state->playing = false;
-		state->plid.clear();
 	}
 
 	return true;
@@ -286,7 +277,7 @@ std::string createReply(Cmd cmd) {
 }
 
 bool saveTrials(Trials trials) {
-	std::ofstream file(FILES_DIR + trials.fname);
+	std::ofstream file(TRIALS_DIR + trials.fname);
 	if (file.is_open()) {
 		file << trials.data;
 		if (file.fail()) {
@@ -304,7 +295,7 @@ bool saveTrials(Trials trials) {
 }
 
 bool saveScoreboard(ScoreBoard scoreboard) {
-	std::ofstream file(FILES_DIR + scoreboard.fname);
+	std::ofstream file(SCOREBOARDS_DIR + scoreboard.fname);
 	if (file.is_open()) {
 		file << scoreboard.data;
 		if (file.fail()) {

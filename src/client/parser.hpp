@@ -3,6 +3,20 @@
 
 #include "support.hpp"
 
+#define CMD_LEN 3
+#define CODE_LEN 7
+#define PLID_LEN 6
+#define TIME_LEN 3
+
+#define MAX_TIME 600
+#define NUM_COLORS 4
+#define MAX_TRIES 8
+
+#define MAX_FILENAME 24
+
+// Client/Server commands
+enum Cmd { Start, Try, Quit, Exit, Debug, Showtrials, Scoreboard, Invalid };
+
 // Master Mind colors
 enum Colors {
 	RED = 'R',
@@ -12,6 +26,37 @@ enum Colors {
 	ORANGE = 'O',
 	PURPLE = 'P'
 };
+
+// Client args
+typedef struct {
+	std::string plid;
+	int time = 0;
+	std::string code;
+} ClArgs;
+
+// ShowTrials server args
+typedef struct {
+	std::string fname;
+	int fsize = 0;
+	std::string data;
+} Trials;
+
+typedef struct {
+	std::string fname;
+	int fsize = 0;
+	std::string data;
+} ScoreBoard;
+
+// Server args
+typedef struct {
+	Status status;
+	int nT = 0;
+	int nB = -1;
+	int nW = -1;
+	std::string code;
+	Trials trials;
+	ScoreBoard scoreboard;
+} SvArgs;
 
 Cmd getCmd(std::string buf);
 bool parseCmd(std::string &buf, ClArgs *args, Cmd cmd);

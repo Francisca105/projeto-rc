@@ -24,45 +24,49 @@ SRC := src
 CLIENT_SOURCES := $(wildcard $(SRC)/client/*.cpp)
 CLIENT_HEADERS := $(wildcard $(SRC)/client/*.hpp)
 CLIENT_OBJECTS := $(CLIENT_SOURCES:.cpp=.o)
-CLIENT_EXEC := client
+CLIENT_EXEC := PA
 
 SERVER_SOURCES := $(wildcard $(SRC)/server/*.cpp)
 SERVER_HEADERS := $(wildcard $(SRC)/server/*.hpp)
 SERVER_OBJECTS := $(SERVER_SOURCES:.cpp=.o)
 SERVER_EXEC := GS
 
-COMMON_SOURCES := $(wildcard $(SRC)/common/*.cpp)
-COMMON_HEADERS := $(wildcard $(SRC)/common/*.hpp)
-COMMON_OBJECTS := $(COMMON_SOURCES:.cpp=.o)
-
-SOURCES := $(CLIENT_SOURCES) $(SERVER_SOURCES) $(COMMON_SOURCES)
-HEADERS := $(CLIENT_HEADERS) $(SERVER_HEADERS) $(COMMON_HEADERS)
-OBJECTS := $(CLIENT_OBJECTS) $(SERVER_OBJECTS) $(COMMON_OBJECTS)
+SOURCES := $(CLIENT_SOURCES) $(SERVER_SOURCES)
+HEADERS := $(CLIENT_HEADERS) $(SERVER_HEADERS)
+OBJECTS := $(CLIENT_OBJECTS) $(SERVER_OBJECTS)
 EXECS := $(CLIENT_EXEC) $(SERVER_EXEC)
 
 # Commands
-.PHONY: all clean fmt submission
+.PHONY: all clean clean_data fmt folders submission
 
 all: $(EXECS)
 
 $(CLIENT_EXEC): $(CLIENT_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-$(SERVER_EXEC): $(SERVER_OBJECTS) $(COMMON_OBJECTS)
+$(SERVER_EXEC): $(SERVER_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-clean:
-	rm -f $(OBJECTS) $(EXECS) proj_50.zip ./gamedata/*
+clean: clean_data
+	rm -f $(OBJECTS) $(EXECS) proj_50.zip
 
-fmt: $(CLIENT_SOURCES) $(CLIENT_HEADERS)
+clean_data:
+	rm -rf ./server/games/* ./server/scores/* ./server/*.txt ./client/scoreboards/* ./client/trials/*
+
+fmt: $(SOURCES) $(HEADERS)
 	clang-format -i $^
+
+folders:
+	mkdir client/
+	mkdir client/scoreboards/
+	mkdir client/trials/
+	mkdir server/
+	mkdir server/games/
+	mkdir server/scores/
 
 submission:
 	mkdir proj_50
 	cp README.md proj_50/readme.txt
-	cp -r src Makefile proj_50/
+	cp -r src Makefile client server proj_50/
 	zip -r proj_50.zip proj_50
 	rm -r proj_50
-
-run: all
-	./client

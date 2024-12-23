@@ -1,5 +1,7 @@
 #include "protocol.hpp"
 
+#include <unistd.h>
+
 #include <cstring>
 #include <iostream>
 
@@ -56,7 +58,7 @@ bool sendUdpAndReceive(std::string request, std::string &reply, int fd,
 		if (!KeepRunning) return false;
 	}
 	std::cerr << "Server did not reply to the request" << std::endl;
-	return true;
+	return false;
 }
 
 bool setTcpSocket(std::string ip, std::string port, int *fd) {
